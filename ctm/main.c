@@ -2,6 +2,9 @@
 #include <rlarg.h>
 #include <rlso.h>
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb/stb_image_resize2.h>
+
 #include "ctm.h"
 #include "ctm-arg.h"
 #include "ctm-image.h"
@@ -40,6 +43,59 @@ bool ctm_update(void *user) {
     return render;
 }
 
+
+
+void display_image(Ctm_Image *image) {
+
+    int xnew = image->width;
+    int ynew = image->height;
+
+    //unsigned char *cdata2 = malloc(xnew * ynew * image->channels);
+    //stbir_resize_uint8_linear(image->data, image->width, image->height, 0, cdata2, xnew, ynew, 0, image->channels);
+    uint8_t *cdata2 = image->data;
+
+    So data = so_ll(cdata2, xnew * ynew * image->channels);
+    //printff("read data, encode b64");
+
+    So base64 = SO;
+    so_base64_fmt_encode(&base64, data);
+    //printff("encoded b64, chunk");
+
+    So display = so("\e_G");
+    //so_fmt(&display, "a=T,f=%u,s=%u,v=%u", task->i, ch*8, x, y);
+
+    so_fmt(&display, "a=T,X=%u,Y=%u,c=%u,f=%u,s=%u,v=%u", 0, 0, 0, image->channels*8, xnew, ynew);
+
+    //so_fmt(&display, "a=T,x=%u,y=%u,f=%u,s=%u,v=%u", 0, 0, ch*8, xnew, ynew);
+    //so_fmt(&display, "q=1,i=%u,f=%u,s=%u,v=%u", task->i, ch*8, x, y);
+    unsigned int chunk = 4000;
+    if(so_len(base64) > chunk) {
+        for(size_t i = 0; i < so_len(base64); i += chunk) {
+            bool more =  i + chunk < so_len(base64);
+            if(!i) {
+                so_fmt(&display, ",m=1;");
+            } else {
+                so_fmt(&display, "\e\\\e_Gm=%u;", more);
+            }
+            if(more) {
+                So sub = so_sub(base64, i, i + chunk + 1);
+                so_extend(&display, sub);
+            } else {
+                So sub = so_i0(base64, i);
+                so_extend(&display, sub);
+            }
+        }
+    } else {
+        so_fmt(&display, ";");
+        so_extend(&display, base64);
+    }
+    so_fmt(&display, "\e\\");
+    so_print(display);
+    so_free(&display);
+
+}
+
+
 void ctm_render(Tui_Buffer *buffer, void *user) {
     Ctm *ctm = user;
 
@@ -53,10 +109,19 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         so_clear(&tmp);
         Ctm_Image *image = v_ctm_image_get_at(&ctm->v_images, i);
 
-        bool is_loaded = image->loaded;
-        bool is_valid = image->data;
+        bool is_loaded = false;
+        bool is_valid = false;
+
+        if(!pthread_rwlock_tryrdlock(&image->rwlock)) {
+            is_loaded = image->loaded;
+            is_valid = image->data;
+            pthread_rwlock_tryrdlock(&image->rwlock);
+        }
+
+        display_image(image);
 
         so_fmt(&tmp, "%.*s : %s : %s", SO_F(image->filename), is_loaded ? "loaded" : "not loaded", is_valid ? "valid" : "not found");
+
         tui_buffer_draw(buffer, rc_images, &fg_images, 0, 0, tmp);
         ++rc_images.anc.y;
     }
@@ -111,6 +176,7 @@ defer:
         tui_core_free(tm.tui_core);
         tui_exit();
     }
+
     arg_free(&tm.arg);
     arg_config_free(&tm.arg_config);
     return err;
