@@ -36,7 +36,7 @@ VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, BASE);
 VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, ERR);
 VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, SORT);
 
-void v_ctm_image_init_from_paths(V_Ctm_Image *v, struct Ctm_Loader_Image *loader, VSo paths);
+void v_ctm_image_init_from_paths(V_Ctm_Image *v, VSo paths);
 
 #define CTM_IMAGE_H
 #endif /* CTM_IMAGE_H */

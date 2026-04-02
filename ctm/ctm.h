@@ -35,6 +35,8 @@ typedef struct Ctm_Grid {
 } Ctm_Grid;
 
 typedef struct Ctm_Input {
+    int move_x;
+    int move_y;
 } Ctm_Input;
 
 typedef struct Ctm {

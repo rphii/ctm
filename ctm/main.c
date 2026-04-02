@@ -10,6 +10,7 @@
 
 bool ctm_input(Tui_Input *input, bool *flush, void *user) {
     Ctm *tm = user;
+    Ctm_Input tm_input = tm->input;
     bool update = false;
     switch(input->id) {
         case INPUT_TEXT: {
@@ -18,10 +19,16 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
                     tui_core_quit(tm->tui_core);
                 } break;
                 case 'j': {
-                    update = true;
+                    ++tm->input.move_y;
                 } break;
                 case 'k': {
-                    update = true;
+                    --tm->input.move_y;
+                } break;
+                case 'l': {
+                    ++tm->input.move_x;
+                } break;
+                case 'h': {
+                    --tm->input.move_x;
                 } break;
             }
         } break;
@@ -31,6 +38,8 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
         } break;
         default: break;
     }
+
+    update = memcmp(&tm_input, &tm->input, sizeof(tm_input));
     return update;
 }
 
@@ -193,8 +202,8 @@ int main(int argc, const char **argv) {
     }
 
     /* init all other ctm structs */
-    ctm_loader_image_init(&tm.loader_image, &tm, number_of_processors);
-    v_ctm_image_init_from_paths(&tm.v_images, &tm.loader_image, tm.image_paths);
+
+    v_ctm_image_init_from_paths(&tm.v_images, tm.image_paths);
 
     Ctm_Row *row;
     NEW(Ctm_Row, row);
@@ -230,6 +239,8 @@ int main(int argc, const char **argv) {
 
     tm.grid.h_single_cell = 5;
     tm.grid.w_title = 10;
+
+    ctm_loader_image_init(&tm.loader_image, &tm, number_of_processors);
 
     if(tm.tui_defer) {
         while(tui_core_loop(tm.tui_core)) {}

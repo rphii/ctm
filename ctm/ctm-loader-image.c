@@ -18,6 +18,12 @@ void ctm_loader_image_init(Ctm_Loader_Image *loader, struct Ctm *ctm, size_t n_j
     loader->config.thumb_w = 128;
     pw_init(&loader->pw, n_jobs ? n_jobs : 1);
     pw_dispatch(&loader->pw);
+
+    for(size_t i = 0; i < v_ctm_image_length(ctm->v_images); ++i) {
+        Ctm_Image *image = v_ctm_image_get_at(&ctm->v_images, i);
+        ctm_loader_image_add(loader, image);
+    }
+
 }
 
 
@@ -54,10 +60,20 @@ defer:
         pthread_mutex_lock(&qd->ctm->events.mtx);
         ++qd->ctm->events.thumb_loaded;
         pthread_mutex_unlock(&qd->ctm->events.mtx);
-        tui_sync_main_update(&qd->ctm->tui_sync.main);
+        /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
+        //tui_sync_main_update(&qd->ctm->tui_sync.main);
+        tui_sync_main_both(&qd->ctm->tui_sync.main);
     }
 
     free(qd);
+    return 0;
+}
+
+void *ctm_loader_when_all_done(Pw *pw, bool *cancel, void *user) {
+    Ctm_Loader_Image *loader = user;
+    
+    /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
+    tui_sync_main_both(&loader->ctm->tui_sync.main);
     return 0;
 }
 
@@ -67,5 +83,6 @@ void ctm_loader_image_add(Ctm_Loader_Image *loader, struct Ctm_Image *image) {
     qd->ctm = loader->ctm;
     qd->image = image;
     pw_queue(&loader->pw, ctm_loader_image_image, qd);
+    pw_when_done(&loader->pw, ctm_loader_when_all_done, loader);
 }
 
