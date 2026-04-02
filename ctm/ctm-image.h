@@ -16,6 +16,7 @@ typedef struct Ctm_Image {
     int unique_id;
     pthread_mutex_t mtx; /* mutex for data */
     Tui_Image *tui_image;
+    Tui_Point coords;
 
     struct {
         Tui_Rect rc_image_prev;

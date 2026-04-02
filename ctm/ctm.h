@@ -37,7 +37,18 @@ typedef struct Ctm_Grid {
 typedef struct Ctm_Input {
     int move_x;
     int move_y;
+    bool space;
 } Ctm_Input;
+
+typedef struct Ctm_Image_Select {
+    Tui_Image *selected;
+    bool grabbed;
+    Tui_Point coords;
+    struct {
+        Tui_Rect rc;
+        Tui_Color bg;
+    } render;
+} Ctm_Image_Select;
 
 typedef struct Ctm {
 
@@ -57,6 +68,7 @@ typedef struct Ctm {
     V_Ctm_Image         v_images;
 
     Ctm_Input           input;
+    Ctm_Image_Select    image_select;
     Ctm_Grid            grid;
 
     Tui_Point           dimensions;

@@ -30,6 +30,9 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
                 case 'h': {
                     --tm->input.move_x;
                 } break;
+                case ' ': {
+                    tm->input.space = true;
+                } break;
             }
         } break;
         case INPUT_CODE: {
@@ -110,6 +113,9 @@ void ctm_grid_update(Tui_Point dimension, Ctm_Grid *grid) {
 bool ctm_update(void *user) {
     Ctm *tm = user;
     bool render = false;
+
+    if(tm->input.move_x) {
+    }
 
     ctm_grid_update(tm->dimensions, &tm->grid);
 
@@ -261,6 +267,8 @@ int main(int argc, const char **argv) {
 
 defer:
 
+    pw_free(&tm.loader_image.pw);
+
     if(tm.tui_defer) {
         tui_core_free(tm.tui_core);
         tui_exit();
@@ -270,8 +278,6 @@ defer:
     arg_config_free(&tm.arg_config);
     v_ctm_image_free(&tm.v_images);
     ctm_grid_free(&tm.grid);
-
-    pw_free(&tm.loader_image.pw);
 
     return err;
 }
