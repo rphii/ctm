@@ -56,7 +56,9 @@ void ctm_row_image_update(Tui_Point dimensions, Ctm_Grid *grid, Ctm_Row *row, si
             rc.anc.x = x0;
             rc.anc.y += d.y;
         }
-        image->render.is_clean = false;
+        if(tui_rect_cmp(image->render.rc_image, image->render.rc_image_prev)) {
+            image->render.is_clean = false;
+        }
     }
 }
 

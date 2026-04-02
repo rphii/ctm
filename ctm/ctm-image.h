@@ -18,6 +18,7 @@ typedef struct Ctm_Image {
     Tui_Image *tui_image;
 
     struct {
+        Tui_Rect rc_image_prev;
         Tui_Rect rc_image;
         bool is_send_ok;
         bool is_send_error;
