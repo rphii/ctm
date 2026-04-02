@@ -33,12 +33,13 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
 
     bool loaded = false;
     FILE *fp = so_file_fp(load->filename, "r");
+    uint8_t *data = 0;
     //printff("Opened file %.*s!", SO_F(load->filename));
 
     pthread_mutex_lock(&load->mtx);
     if(fp) {
         int w, h, ch;
-        uint8_t *data = stbi_load_from_file(fp, &w, &h, &ch, 0);
+        data = stbi_load_from_file(fp, &w, &h, &ch, 0);
         if(!data) goto defer;
 
         load->channels = ch;
@@ -55,6 +56,8 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
 defer:
     loaded = load->loaded;
     pthread_mutex_unlock(&load->mtx);
+
+    free(data);
 
     if(loaded) {
         pthread_mutex_lock(&qd->ctm->events.mtx);

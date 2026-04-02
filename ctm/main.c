@@ -168,6 +168,17 @@ void ctm_resized(Tui_Point size, Tui_Point pixels, void *user) {
     tm->dimensions = size;
 }
 
+void ctm_row_free(Ctm_Row **row) {
+    if(row) {
+        array_free((*row)->images);
+    }
+    free(*row);
+}
+
+void ctm_grid_free(Ctm_Grid *grid) {
+    array_free_ext(grid->rows, ctm_row_free);
+}
+
 int main(int argc, const char **argv) {
 
     int err = 0;
@@ -246,7 +257,10 @@ int main(int argc, const char **argv) {
         while(tui_core_loop(tm.tui_core)) {}
     }
 
+    pw_cancel(&tm.loader_image.pw);
+
 defer:
+
     if(tm.tui_defer) {
         tui_core_free(tm.tui_core);
         tui_exit();
@@ -254,6 +268,11 @@ defer:
 
     arg_free(&tm.arg);
     arg_config_free(&tm.arg_config);
+    v_ctm_image_free(&tm.v_images);
+    ctm_grid_free(&tm.grid);
+
+    pw_free(&tm.loader_image.pw);
+
     return err;
 }
 
