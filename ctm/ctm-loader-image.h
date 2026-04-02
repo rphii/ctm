@@ -11,6 +11,11 @@ typedef struct Ctm_Loader_Image {
     Pw pw;
     pthread_mutex_t images_mtx;
 
+    struct {
+        size_t thumb_w;
+        size_t thumb_h;
+    } config;
+
 } Ctm_Loader_Image;
 
 void ctm_loader_image_init(Ctm_Loader_Image *loader, struct Ctm *ctm, size_t n_jobs);

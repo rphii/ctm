@@ -24,6 +24,15 @@ int ctm_image_cmp(Ctm_Image *a, Ctm_Image *b) {
     return so_cmp_s(a->filename, b->filename);
 }
 
+bool ctm_image_is_valid(Ctm_Image *img) {
+    bool is_valid = false;
+    if(!pthread_mutex_trylock(&img->mtx)) {
+        is_valid = img->loaded && img->tui_image;
+        pthread_mutex_unlock(&img->mtx);
+    }
+    return is_valid;
+}
+
 void v_ctm_image_init_from_paths(V_Ctm_Image *v, struct Ctm_Loader_Image *loader, VSo paths) {
     size_t len = array_len(paths);
     v_ctm_image_resize(v, len);

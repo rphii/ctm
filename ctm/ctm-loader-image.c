@@ -1,6 +1,9 @@
 #include "ctm-loader-image.h"
 #include <stb/stb_image.h>
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <stb/stb_image_resize2.h>
+
 #include "ctm-image.h"
 #include "ctm.h"
 
@@ -11,6 +14,8 @@ typedef struct Ctm_Queue_Do {
 
 void ctm_loader_image_init(Ctm_Loader_Image *loader, struct Ctm *ctm, size_t n_jobs) {
     loader->ctm = ctm;
+    loader->config.thumb_h = 128;
+    loader->config.thumb_w = 128;
     pw_init(&loader->pw, n_jobs ? n_jobs : 1);
     pw_dispatch(&loader->pw);
 }
@@ -26,14 +31,23 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
 
     pthread_mutex_lock(&load->mtx);
     if(fp) {
-        load->data = stbi_load_from_file(fp, &load->width, &load->height, &load->channels, 0);
+        int w, h, ch;
+        uint8_t *data = stbi_load_from_file(fp, &w, &h, &ch, 0);
+        if(!data) goto defer;
+
+        load->channels = ch;
+        load->width = qd->ctm->loader_image.config.thumb_w;
+        load->height = qd->ctm->loader_image.config.thumb_h;
+        load->data = malloc(load->width * load->height * load->channels);
+        if(!load->data) goto defer;
+
+        stbir_resize_uint8_linear(data, w, h, 0, load->data, load->width, load->height, 0, load->channels);
         load->tui_image = tui_image_new(qd->ctm->tui_core, load->unique_id, load->data, (Tui_Point){ .x = load->width, .y = load->height }, load->channels);
-        if(load->data) {
-            loaded = true;
-        }
         load->loaded = true;
         fclose(fp);
     }
+defer:
+    loaded = load->loaded;
     pthread_mutex_unlock(&load->mtx);
 
     if(loaded) {

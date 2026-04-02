@@ -12,17 +12,30 @@
 #include "ctm-event.h"
 #include "ctm-image.h"
 
+
 typedef struct Ctm_Row {
     So name;
     Tui_Fx fx;
     Tui_Color fg;
     Tui_Color bg;
+    Ctm_Image **images;
+
+    struct {
+        Tui_Rect rc_name;
+        Tui_Rect rc_row;
+    } render;
+
 } Ctm_Row, **Ctm_Rows;
 
 typedef struct Ctm_Grid {
-    ssize_t h;
+    ssize_t w_title;
+    ssize_t h_single_cell;
     Ctm_Rows rows;
+
 } Ctm_Grid;
+
+typedef struct Ctm_Input {
+} Ctm_Input;
 
 typedef struct Ctm {
 
@@ -41,9 +54,10 @@ typedef struct Ctm {
     Ctm_Event           events;
     V_Ctm_Image         v_images;
 
-    size_t              i_image_next;
-    size_t              i_image_prev;
-    int                 i_image_change;
+    Ctm_Input           input;
+    Ctm_Grid            grid;
+
+    Tui_Point           dimensions;
 
 } Ctm;
 
