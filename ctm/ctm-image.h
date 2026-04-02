@@ -14,8 +14,8 @@ typedef struct Ctm_Image {
     int channels;
     bool loaded;
     int unique_id;
-    pthread_rwlock_t rwlock; /* mutex for data */
-    //Tui_Image *tui_image;
+    pthread_mutex_t mtx; /* mutex for data */
+    Tui_Image *tui_image;
 } Ctm_Image;
 
 void ctm_image_free(Ctm_Image *img);

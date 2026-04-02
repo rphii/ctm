@@ -19,6 +19,14 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
                 case 'q': {
                     tui_core_quit(tm->tui_core);
                 } break;
+                case 'j': {
+                    tm->i_image_change = 1;
+                    update = true;
+                } break;
+                case 'k': {
+                    tm->i_image_change = -1;
+                    update = true;
+                } break;
             }
         } break;
         case INPUT_CODE: {
@@ -31,73 +39,40 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
 }
 
 bool ctm_update(void *user) {
-    Ctm *ctm = user;
+    Ctm *tm = user;
 
     bool render = false;
 
-    pthread_mutex_lock(&ctm->events.mtx);
-    if(ctm->events.thumb_loaded) render = true;
-    ctm->events.thumb_loaded = 0;
-    pthread_mutex_unlock(&ctm->events.mtx);
+    tm->i_image_prev = tm->i_image_next;
+
+    pthread_mutex_lock(&tm->events.mtx);
+    if(tm->events.thumb_loaded) render = true;
+    tm->events.thumb_loaded = 0;
+    pthread_mutex_unlock(&tm->events.mtx);
+
+
+    if(tm->i_image_change > 0) {
+        ++tm->i_image_next;
+        if(tm->i_image_next >= v_ctm_image_length(tm->v_images)) {
+            tm->i_image_next = 0;
+        }
+    } else if(tm->i_image_change < 0) {
+        if(tm->i_image_next > 0) {
+            --tm->i_image_next;
+        } else {
+            tm->i_image_next = v_ctm_image_length(tm->v_images) - 1;
+        }
+    }
+
+    tm->i_image_change = 0;
+
 
     return render;
 }
 
 
-
-void display_image(Ctm_Image *image) {
-
-    int xnew = image->width;
-    int ynew = image->height;
-
-    //unsigned char *cdata2 = malloc(xnew * ynew * image->channels);
-    //stbir_resize_uint8_linear(image->data, image->width, image->height, 0, cdata2, xnew, ynew, 0, image->channels);
-    uint8_t *cdata2 = image->data;
-
-    So data = so_ll(cdata2, xnew * ynew * image->channels);
-    //printff("read data, encode b64");
-
-    So base64 = SO;
-    so_base64_fmt_encode(&base64, data);
-    //printff("encoded b64, chunk");
-
-    So display = so("\e_G");
-    //so_fmt(&display, "a=T,f=%u,s=%u,v=%u", task->i, ch*8, x, y);
-
-    so_fmt(&display, "a=T,X=%u,Y=%u,c=%u,f=%u,s=%u,v=%u", 0, 0, 0, image->channels*8, xnew, ynew);
-
-    //so_fmt(&display, "a=T,x=%u,y=%u,f=%u,s=%u,v=%u", 0, 0, ch*8, xnew, ynew);
-    //so_fmt(&display, "q=1,i=%u,f=%u,s=%u,v=%u", task->i, ch*8, x, y);
-    unsigned int chunk = 4000;
-    if(so_len(base64) > chunk) {
-        for(size_t i = 0; i < so_len(base64); i += chunk) {
-            bool more =  i + chunk < so_len(base64);
-            if(!i) {
-                so_fmt(&display, ",m=1;");
-            } else {
-                so_fmt(&display, "\e\\\e_Gm=%u;", more);
-            }
-            if(more) {
-                So sub = so_sub(base64, i, i + chunk + 1);
-                so_extend(&display, sub);
-            } else {
-                So sub = so_i0(base64, i);
-                so_extend(&display, sub);
-            }
-        }
-    } else {
-        so_fmt(&display, ";");
-        so_extend(&display, base64);
-    }
-    so_fmt(&display, "\e\\");
-    so_print(display);
-    so_free(&display);
-
-}
-
-
 void ctm_render(Tui_Buffer *buffer, void *user) {
-    Ctm *ctm = user;
+    Ctm *tm = user;
 
     So tmp = SO;
     Tui_Color fg_images = { .type = TUI_COLOR_8, .col8 = 2 };
@@ -105,24 +80,67 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         .anc = (Tui_Point){ .x = 0, .y = 0 },
         .dim = (Tui_Point){ .x = buffer->dimension.x, .y = 1 }
     };
-    for(size_t i = 0; i < v_ctm_image_length(ctm->v_images); ++i) {
+
+#if 0
+    for(size_t i = 0; i < v_ctm_image_length(tm->v_images); ++i) {
         so_clear(&tmp);
-        Ctm_Image *image = v_ctm_image_get_at(&ctm->v_images, i);
+        Ctm_Image *image = v_ctm_image_get_at(&tm->v_images, i);
 
         bool is_loaded = false;
         bool is_valid = false;
 
-        if(!pthread_rwlock_tryrdlock(&image->rwlock)) {
+        if(!pthread_mutex_trylock(&image->mtx)) {
             is_loaded = image->loaded;
             is_valid = image->data;
-            pthread_rwlock_tryrdlock(&image->rwlock);
+            pthread_mutex_unlock(&image->mtx);
         }
 
-        so_fmt(&tmp, "%.*s : %s : %s", SO_F(image->filename), is_loaded ? "loaded" : "not loaded", is_valid ? "valid" : "not found");
+        //so_fmt(&tmp, "%.*s : %s : %s", SO_F(image->filename), is_loaded ? "loaded" : "not loaded", is_valid ? "valid" : "not found");
+
+        if(is_valid) {
+            image->tui_image->src.dim = image->tui_image->dimensions;
+            //image->tui_image->dst.dim = 
+            image->tui_image->z = 1;
+            tui_image_update(tm->tui_core, image->tui_image, 0);
+            tui_image_render(tm->tui_core, image->tui_image, image->unique_id, 0);
+        }
 
         tui_buffer_draw(buffer, rc_images, &fg_images, 0, 0, tmp);
         ++rc_images.anc.y;
     }
+    so_free(&tmp);
+#endif
+
+    Ctm_Image *image_prev = v_ctm_image_get_at(&tm->v_images, tm->i_image_prev);
+    bool is_valid_prev = false;
+    if(tm->i_image_next != tm->i_image_prev && !pthread_mutex_trylock(&image_prev->mtx)) {
+        is_valid_prev = image_prev->data;
+        pthread_mutex_unlock(&image_prev->mtx);
+    }
+
+    Ctm_Image *image = v_ctm_image_get_at(&tm->v_images, tm->i_image_next);
+
+    bool is_loaded = false;
+    bool is_valid = false;
+    if(tm->i_image_next != tm->i_image_prev && !pthread_mutex_trylock(&image->mtx)) {
+        is_loaded = image->loaded;
+        is_valid = image->data;
+        pthread_mutex_unlock(&image->mtx);
+    }
+
+    if(is_valid_prev) {
+        tui_image_clear_id_place(tm->tui_core, &tmp, image_prev->tui_image->id);
+        //printff("cleared prev");
+    }
+    if(is_valid) {
+        image->tui_image->src.dim = image->tui_image->dimensions;
+        //image->tui_image->dst.dim = 
+        image->tui_image->z = 1;
+        tui_image_update(tm->tui_core, image->tui_image, 0);
+        tui_image_render(tm->tui_core, image->tui_image, image->unique_id, 0);
+        //printff("cleared next");
+    }
+
     so_free(&tmp);
 
 }

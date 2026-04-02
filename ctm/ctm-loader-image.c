@@ -24,17 +24,17 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
     FILE *fp = so_file_fp(load->filename, "r");
     //printff("Opened file %.*s!", SO_F(load->filename));
 
-    pthread_rwlock_wrlock(&load->rwlock);
+    pthread_mutex_lock(&load->mtx);
     if(fp) {
         load->data = stbi_load_from_file(fp, &load->width, &load->height, &load->channels, 0);
-        //load->tui_image = tui_image_new(qd->ctm->tui_core, load->unique_id, load->data, (Tui_Point){ .x = load->width, .y = load->height }, load->channels);
+        load->tui_image = tui_image_new(qd->ctm->tui_core, load->unique_id, load->data, (Tui_Point){ .x = load->width, .y = load->height }, load->channels);
         if(load->data) {
             loaded = true;
         }
         load->loaded = true;
         fclose(fp);
     }
-    pthread_rwlock_unlock(&load->rwlock);
+    pthread_mutex_unlock(&load->mtx);
 
     if(loaded) {
         pthread_mutex_lock(&qd->ctm->events.mtx);
