@@ -1,3 +1,4 @@
+#include "ctm.h"
 #include "ctm-image.h"
 #include "ctm-loader-image.h"
 
@@ -28,9 +29,11 @@ void v_ctm_image_init_from_paths(V_Ctm_Image *v, struct Ctm_Loader_Image *loader
     v_ctm_image_resize(v, len);
     for(size_t i = 0; i < len; ++i) {
         So path = array_at(paths, i);
-        printff("Load image %.*s",SO_F(path));
+        //printff("Load image %.*s",SO_F(path));
+
         Ctm_Image *image = v_ctm_image_get_at(v, i);
         image->filename = path;
+        image->unique_id = i + 1;
         ctm_loader_image_add(loader, image);
     }
 }

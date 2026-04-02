@@ -27,6 +27,7 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
     pthread_rwlock_wrlock(&load->rwlock);
     if(fp) {
         load->data = stbi_load_from_file(fp, &load->width, &load->height, &load->channels, 0);
+        //load->tui_image = tui_image_new(qd->ctm->tui_core, load->unique_id, load->data, (Tui_Point){ .x = load->width, .y = load->height }, load->channels);
         if(load->data) {
             loaded = true;
         }

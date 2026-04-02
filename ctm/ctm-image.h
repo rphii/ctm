@@ -2,6 +2,7 @@
 
 #include <rlso.h>
 #include <rlc.h>
+#include <rltui.h>
 
 struct Ctm_Loader_Image;
 
@@ -12,7 +13,9 @@ typedef struct Ctm_Image {
     int height;
     int channels;
     bool loaded;
+    int unique_id;
     pthread_rwlock_t rwlock; /* mutex for data */
+    //Tui_Image *tui_image;
 } Ctm_Image;
 
 void ctm_image_free(Ctm_Image *img);

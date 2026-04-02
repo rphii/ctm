@@ -118,8 +118,6 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
             pthread_rwlock_tryrdlock(&image->rwlock);
         }
 
-        display_image(image);
-
         so_fmt(&tmp, "%.*s : %s : %s", SO_F(image->filename), is_loaded ? "loaded" : "not loaded", is_valid ? "valid" : "not found");
 
         tui_buffer_draw(buffer, rc_images, &fg_images, 0, 0, tmp);
@@ -153,10 +151,6 @@ int main(int argc, const char **argv) {
 
     long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
 
-    /* start all other ctm structs */
-    ctm_loader_image_init(&tm.loader_image, &tm, number_of_processors);
-    v_ctm_image_init_from_paths(&tm.v_images, &tm.loader_image, tm.image_paths);
-
     /* set up the tui portion of tui */
     tm.tui_defer = true;
     if(tm.tui_defer) {
@@ -165,9 +159,17 @@ int main(int argc, const char **argv) {
         tm.tui_core_callbacks.update = ctm_update;
         tm.tui_core_callbacks.render = ctm_render;
         tm.tui_core_callbacks.resized = ctm_resized;
-        tui_core_init(tm.tui_core, &tm.tui_core_callbacks, &tm.tui_sync, &tm);
-
         tui_enter();
+        tui_core_init(tm.tui_core, &tm.tui_core_callbacks, &tm.tui_sync, &tm);
+    }
+
+#if 1
+    /* start all other ctm structs */
+    ctm_loader_image_init(&tm.loader_image, &tm, number_of_processors);
+    v_ctm_image_init_from_paths(&tm.v_images, &tm.loader_image, tm.image_paths);
+#endif
+
+    if(tm.tui_defer) {
         while(tui_core_loop(tm.tui_core)) {}
     }
 
