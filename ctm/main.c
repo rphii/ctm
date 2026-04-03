@@ -408,7 +408,7 @@ bool ctm_update(void *user) {
 
     //tm->input_mouse_prev = tm->input.mouse;
     tm->input = (Ctm_Input){0};
-    return render;
+    return true;
 }
 
 void ctm_render(Tui_Buffer *buffer, void *user) {
@@ -429,11 +429,15 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         tui_buffer_draw(buffer, row->render.rc_bg, 0, &row->render.bg_bg, 0, SO);
         tui_buffer_draw(buffer, row->render.rc_ul, &row->render.fg_ul, 0, &(Tui_Fx){ .ul = true }, SO);
         tui_buffer_draw(buffer, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
+    }
+
+    for(Ctm_Row **it = grid->rows; it < itE; ++it) {
+        Ctm_Row *row = *it;
 
         Ctm_Image **jtE = array_itE(row->images);
         for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
             Ctm_Image *image = *jt;
-            if(false && ctm_image_is_valid(image)) {
+            if(false && tm->config.is_graphics_supported && ctm_image_is_valid(image)) {
                 /* make sure the image is updated on the TUI side */
                 if(!image->render.is_send_error && !image->render.is_send_ok) {
                     image->render.is_send_error = tui_image_update(tm->tui_core, image->tui_image, 0);
@@ -456,7 +460,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                     }
                 }
             } else {
-                tui_buffer_draw(buffer,image->render.rc_image, 0, 0, 0, so_get_basename(image->filename));
+                tui_buffer_draw(buffer,image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_basename(image->filename));
             }
         }
 
@@ -472,6 +476,8 @@ void ctm_resized(Tui_Point size, Tui_Point pixels, void *user) {
     Ctm *tm = user;
     ctm_grid_all_dirty(&tm->grid);
     tm->dimensions = size;
+
+    //tm->config.is_graphics_supported = tui_image_is_supported(tm->tui_core);
 }
 
 void ctm_row_free(Ctm_Row **row) {

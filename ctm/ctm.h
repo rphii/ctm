@@ -77,12 +77,17 @@ typedef struct Ctm_Image_Select {
 
 } Ctm_Image_Select;
 
+typedef struct Ctm_Config {
+    bool is_graphics_supported;
+} Ctm_Config;
+
 typedef struct Ctm {
 
     bool                arg_quit_early;
     struct Arg_Config  *arg_config;
     struct Arg         *arg;
 
+    Ctm_Config          config;
     VSo                 image_paths;
 
     bool                tui_defer;
