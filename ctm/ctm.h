@@ -46,6 +46,7 @@ typedef struct Ctm_Input {
     int select_x;
     int select_y;
     bool confirm;
+    bool next;
     Tui_Input_List input_id;
     Tui_Mouse mouse;
 } Ctm_Input;

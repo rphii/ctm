@@ -35,6 +35,9 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
             }
         } break;
         case INPUT_CODE: {
+            if(input->code == KEY_CODE_ENTER) {
+                tm->input.next = true;
+            }
         } break;
         case INPUT_MOUSE: {
             tm->input.mouse = input->mouse;
@@ -175,7 +178,7 @@ Ctm_Image *ctm_image_find_first_best(Ctm_Config *config, Ctm_Grid *grid, Ctm_Row
     if(!direction) return fallback;
     /* find first */
     Ctm_Row **itE = direction >= 0 ? array_itE(grid->rows) : grid->rows;
-    Ctm_Row **it0 = direction <  0 ? array_itE(grid->rows) : grid->rows;
+    Ctm_Row **it0 = direction <  0 ? array_itL(grid->rows) : grid->rows;
     if(row0) it0 = row0 + direction;
     Ctm_Image *result = 0;
     for(Ctm_Row **it = it0; direction >= 0 ? it < itE : it + 1 > itE; it += direction) {
@@ -484,14 +487,22 @@ bool ctm_update(void *user) {
 
 #if 1
     if(tm->image_select.select.is_kbd) {
+
         Ctm_Image *image = tm->image_select.select.image;
+
+        if(tm->input.next) {
+            Ctm_Image *image_old = image;
+            image = ctm_image_find_first_best(&tm->config, &tm->grid, 0, image, -1);
+            if(image) {
+                if(image_old != image) ctm_image_unboth(image_old);
+                tm->image_select.select.image = image;
+                image->render.is_selected = true;
+            }
+        }
 
         if(!image) {
             image = ctm_image_find_first_best(&tm->config, &tm->grid, 0, image, 1);
             tm->image_select.select.image = image;
-            
-            //image = tm->image_select.select.image;
-
         } 
 
         if(image) {
