@@ -43,7 +43,9 @@ typedef struct Ctm_Grid {
 typedef struct Ctm_Input {
     int move_x;
     int move_y;
-    bool space;
+    int select_x;
+    int select_y;
+    bool confirm;
     Tui_Input_List input_id;
     Tui_Mouse mouse;
 } Ctm_Input;

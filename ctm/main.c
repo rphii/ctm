@@ -21,20 +21,16 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
                 case 'q': {
                     tui_core_quit(tm->tui_core);
                 } break;
-                case 'j': {
-                    ++tm->input.move_y;
-                } break;
-                case 'k': {
-                    --tm->input.move_y;
-                } break;
-                case 'l': {
-                    ++tm->input.move_x;
-                } break;
-                case 'h': {
-                    --tm->input.move_x;
-                } break;
+                case 'J': { ++tm->input.move_y; } break;
+                case 'K': { --tm->input.move_y; } break;
+                case 'L': { ++tm->input.move_x; } break;
+                case 'H': { --tm->input.move_x; } break;
+                case 'j': { ++tm->input.select_y; } break;
+                case 'k': { --tm->input.select_y; } break;
+                case 'l': { ++tm->input.select_x; } break;
+                case 'h': { --tm->input.select_x; } break;
                 case ' ': {
-                    tm->input.space = true;
+                    tm->input.confirm = true;
                 } break;
             }
         } break;
@@ -175,17 +171,22 @@ void ctm_grid_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Grid *grid) {
     }
 }
 
-void ctm_image_select_first_best(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image_Select *select) {
+Ctm_Image *ctm_image_find_first_best(Ctm_Config *config, Ctm_Grid *grid, Ctm_Row **row0, Ctm_Image *fallback, int direction) {
+    if(!direction) return fallback;
     /* find first */
-    Ctm_Row **itE = array_itE(grid->rows);
-    for(Ctm_Row **it = grid->rows; it < itE; ++it) {
+    Ctm_Row **itE = direction >= 0 ? array_itE(grid->rows) : grid->rows;
+    Ctm_Row **it0 = direction <  0 ? array_itE(grid->rows) : grid->rows;
+    if(row0) it0 = row0 + direction;
+    Ctm_Image *result = 0;
+    for(Ctm_Row **it = it0; direction >= 0 ? it < itE : it + 1 > itE; it += direction) {
         Ctm_Row *row = *it;
         if(!row) continue;
         if(array_len(row->images)) {
-            select->select.image = *row->images;
+            result = *row->images;
             break;
         }
     }
+    return result ? result : fallback;
 }
 
 #if 0
@@ -219,9 +220,13 @@ void ctm_image_unselect(Ctm_Image *image) {
 void ctm_image_unfloat(Ctm_Image *image) {
     image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
     image->render.is_floating = false;
-    if(ctm_image_is_valid(image)) {
-        image->tui_image->z = 0;
-    }
+}
+
+void ctm_image_unboth(Ctm_Image *image) {
+    if(!image) return;
+    image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
+    image->render.is_floating = false;
+    image->render.is_selected = false;
 }
 
 void ctm_grid_all_dirty(Ctm_Grid *grid) {
@@ -238,7 +243,10 @@ void ctm_grid_all_dirty(Ctm_Grid *grid) {
     }
 }
 
-void ctm_grid_update_dirty(Ctm_Grid *grid, bool un_float_all) {
+void ctm_grid_un_all(Ctm_Grid *grid) {
+}
+
+void ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) {
     Ctm_Row **itE = array_itE(grid->rows);
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
         Ctm_Row *row = *it;
@@ -249,9 +257,19 @@ void ctm_grid_update_dirty(Ctm_Grid *grid, bool un_float_all) {
             if(tui_rect_cmp(image->render.rc_image, image->render.rc_image_prev)) {
                 image->render.is_clean = false;
             }
-            if(un_float_all) {
+            if(unfloat_all) {
                 ctm_image_unfloat(image);
             }
+            if(unselect_all) {
+                ctm_image_unselect(image);
+            }
+#if 0
+            if(!image->render.is_clean) {
+                static int n_upd;
+                printf(TUI_ESC_CODE_GOTO(0,0));
+                printff("%.*s is not clean %u dim %u %u",SO_F(image->filename),++n_upd,image->render.rc_image.dim.x,image->render.rc_image.dim.y);
+            }
+#endif
         }
     }
 }
@@ -275,6 +293,15 @@ size_t ctm_row_image_index(Ctm_Row *row, Ctm_Image *image) {
     for(size_t i = 0; i < len; ++i) {
         Ctm_Image *im = array_at(row->images, i);
         if(im == image) return i;
+    }
+    return len;
+}
+
+size_t ctm_grid_row_index(Ctm_Grid *grid, Ctm_Row *row) {
+    size_t len = array_len(grid->rows);
+    for(size_t i = 0; i < len; ++i) {
+        Ctm_Row *im = array_at(grid->rows, i);
+        if(im == row) return i;
     }
     return len;
 }
@@ -374,6 +401,8 @@ bool ctm_update(void *user) {
     Ctm *tm = user;
     bool render = false;
 
+    bool unfloat_all = false, unselect_all = false;
+
     if(tm->input.input_id == INPUT_MOUSE) {
         tm->image_select.select.is_kbd = false;
     } else if(tm->input.input_id) {
@@ -389,16 +418,15 @@ bool ctm_update(void *user) {
     if(tm->input.mouse.l.press) {
 
         Ctm_Grid *grid = &tm->grid;
-        Ctm_Image *selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
+        Ctm_Image *selected = tm->image_select.select.image;
+        if(selected) {
+            ctm_image_unboth(selected);
+        }
+
+        selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
         if(selected) {
             tm->image_select.select.image = selected;
-            
-#if 0
-            if(ctm_image_is_valid(selected)) {
-                ++selected->tui_image->z;  // TODO : does not do its thing
-            }
-#endif
-
+            // TODO : needs to check if is_valid ++selected->tui_image->z;
             Tui_Point dg = {
                 .x = (tm->config.dim_cell_grab.x - tm->config.dim_cell.x) / 2,
                 .y = (tm->config.dim_cell_grab.y - tm->config.dim_cell.y) / 2,
@@ -413,12 +441,12 @@ bool ctm_update(void *user) {
             tm->image_select.select.float_anc = selected->render.rc_image.anc;
 
             selected->render.is_floating = true;
+            unselect_all = true;
             //selected->render.is_clean = false;
         }
 
     }
 
-    bool un_float_all = false;
     if(tm->image_select.select.image) {
         Ctm_Image *selected = tm->image_select.select.image;
         if(tm->input.mouse.l.repeat && selected->render.is_floating) {
@@ -429,9 +457,10 @@ bool ctm_update(void *user) {
             selected->render.rc_image.anc.x = p0.x + (p2.x - p1.x);
             selected->render.rc_image.anc.y = p0.y + (p2.y - p1.y);
         }
-        if(tm->input.mouse.l.release || tm->input.space) {
+        if(tm->input.mouse.l.release) {
             if(selected->render.is_floating) {
-                un_float_all = true;
+                ctm_image_unboth(selected);
+                unfloat_all = true;
                 /* find rect that would be the target for the drop */
                 Ctm_Row **itE = array_itE(tm->grid.rows);
                 for(Ctm_Row **it = tm->grid.rows; it < itE; ++it) {
@@ -455,33 +484,68 @@ bool ctm_update(void *user) {
 
 #if 1
     if(tm->image_select.select.is_kbd) {
-        if(!tm->image_select.select.image) {
-            ctm_image_select_first_best(&tm->config, &tm->grid, &tm->image_select);
-        }
+        Ctm_Image *image = tm->image_select.select.image;
 
-        //if(tm->image_select.select.image && tm->input.move_x) {
-        //    tm->image_select.select.image->render.is_selected = true;
-        //}
-        //if(tm->image_select.select.image && tm->input.move_y) {
-        //    tm->image_select.select.image->render.is_selected = false;
+        if(!image) {
+            image = ctm_image_find_first_best(&tm->config, &tm->grid, 0, image, 1);
+            tm->image_select.select.image = image;
+            
+            //image = tm->image_select.select.image;
 
-        //    //static size_t n_upd;
-        //    //printf(TUI_ESC_CODE_GOTO(0,1));
-        //    //printff("update %zu", ++n_upd);
-        //    //usleep(1e6);
-        //    //ctm_image_select_first_best(&tm->config, &tm->grid, &tm->image_select);
-        //}
+        } 
+
+        if(image) {
+            if(tm->input.confirm) {
+                image->render.is_selected = !image->render.is_selected;
+            }
+
+            ssize_t x = ctm_row_image_index(image->row_owner, image);
+            ssize_t y = ctm_grid_row_index(&tm->grid, image->row_owner);
+
+            if(tm->input.move_y || tm->input.move_x) {
+                x += tm->input.move_x;
+                y += tm->input.move_y;
+                if(y >= 0 && y < array_len(tm->grid.rows)) {
+                    //ctm_row_pop_image(tm, image, false);
+                    Ctm_Row *row_new = array_at(tm->grid.rows, y);
+                    if(x >= (ssize_t)array_len(row_new->images)) x = array_len(row_new->images);
+                    if(x >= 0) ctm_row_image_set(tm, row_new, image, x);
+                }
+            }
+
+            if(tm->input.select_y || tm->input.select_x) {
+                Ctm_Row **prow_prev = array_it(tm->grid.rows, y);
+                //Ctm_Row *row_prev = *prow_prev;
+                Ctm_Image *image_old = image;
+                image = ctm_image_find_first_best(&tm->config, &tm->grid, prow_prev, image, tm->input.select_y);
+
+                if(image_old != image) ctm_image_unboth(image_old);
+                tm->image_select.select.image = image;
+
+#if 1
+                x += tm->input.select_x;
+                if(x >= 0 && x < array_len(image->row_owner->images)) {
+                    ctm_image_unboth(image_old);
+                    image = array_at(image->row_owner->images, x);
+                    tm->image_select.select.image = image;
+                }
+#endif
+            }
+
+            if((tm->input.select_x || tm->input.select_y || tm->input.move_x || tm->input.move_y)) {
+                image->render.is_selected = true;
+            }
+        } 
     }
 
     //ctm_image_select_move_x(tm, &tm->image_select, tm->input.move_x);
     //ctm_image_select_move_y(tm, &tm->image_select, tm->input.move_y);
 
-    ctm_image_select_update(&tm->grid, &tm->image_select);
+    //ctm_image_select_update(&tm->grid, &tm->image_select);
 #endif
 
     ctm_grid_update(tm->dimensions, &tm->config, &tm->grid);
-
-    ctm_grid_update_dirty(&tm->grid, un_float_all);
+    ctm_grid_update_dirty(&tm->grid, unfloat_all, unselect_all);
 
     //tm->input_mouse_prev = tm->input.mouse;
     tm->input = (Ctm_Input){0};
