@@ -77,6 +77,7 @@ void *ctm_loader_when_all_done(Pw *pw, bool *cancel, void *user) {
     
     /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
     tui_sync_main_both(&loader->ctm->tui_sync.main);
+    pw_when_done_clear(pw);
     return 0;
 }
 

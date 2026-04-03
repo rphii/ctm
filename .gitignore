@@ -5,5 +5,6 @@
 *valgrind*
 subprojects/*
 !subprojects/*.wrap
+subprojects/rlwcwidth.wrap
 build*
 
