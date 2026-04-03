@@ -49,26 +49,13 @@ typedef struct Ctm_Input {
     Tui_Mouse mouse;
 } Ctm_Input;
 
-typedef enum {
-    CTM_IMAGE_SELECT_GRID,  /* use grid_coords */
-    CTM_IMAGE_SELECT_HOVER, /* use mouse_coords */
-} Ctm_Image_Select_List;
-
 typedef struct Ctm_Image_Select {
 
-#if 1
     struct {
         Ctm_Image *image;
-        //size_t    i_row;
-        //size_t    i_cell;
-        Tui_Point grid_index;
-        Tui_Point mouse_coords;
-        Ctm_Image_Select_List id;
-        bool grabbed;
         Tui_Point float_anc;
         Tui_Point float_origin;
     } select;
-#endif
 
     struct {
         Tui_Rect rc;

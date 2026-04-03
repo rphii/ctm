@@ -341,19 +341,21 @@ bool ctm_update(void *user) {
             selected->render.rc_image.anc.y = p0.y + (p2.y - p1.y);
         }
         if(tm->input.mouse.l.release) {
-            un_float_all = true;
-            /* find rect that would be the target for the drop */
-            Ctm_Row **itE = array_itE(tm->grid.rows);
-            for(Ctm_Row **it = tm->grid.rows; it < itE; ++it) {
-                Ctm_Row *row = *it;
-                //printff("rc %u %u %u %u",row->render.rc_grid.anc.x,row->render.rc_grid.anc.y,row->render.rc_grid.dim.x,row->render.rc_grid.dim.y);
-                if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
+            if(selected->render.is_floating) {
+                un_float_all = true;
+                /* find rect that would be the target for the drop */
+                Ctm_Row **itE = array_itE(tm->grid.rows);
+                for(Ctm_Row **it = tm->grid.rows; it < itE; ++it) {
+                    Ctm_Row *row = *it;
+                    //printff("rc %u %u %u %u",row->render.rc_grid.anc.x,row->render.rc_grid.anc.y,row->render.rc_grid.dim.x,row->render.rc_grid.dim.y);
+                    if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
 
-                    size_t i = ctm_row_image_index_from_pos(&tm->grid, row, tm->input.mouse.pos);
-                    if(i + 1 < array_len(row->images)) {
+                        /* insert into certain position */
+                        size_t i = ctm_row_image_index_from_pos(&tm->grid, row, tm->input.mouse.pos);
+                        if(i + 1 < array_len(row->images)) {
 
-                        size_t i0 = ctm_row_image_index(row, selected);
-                        size_t len = array_len(row->images);
+                            size_t i0 = ctm_row_image_index(row, selected);
+                            size_t len = array_len(row->images);
 
                             if(row != selected->row_owner) {
                                 ++len;
@@ -361,33 +363,31 @@ bool ctm_update(void *user) {
                                 array_resize(row->images, len);
                             }
 
-                        if(i0 < i) {
+                            if(i0 < i) {
+                                size_t move = i - i0;
+                                if(move) {
+                                    memmove(row->images + i0, row->images + i0 + 1, sizeof(*row->images) * move);
+                                }
+                            } else {
+                                size_t move = i0 - i;
+                                if(move) {
+                                    memmove(row->images + i + 1, row->images + i, sizeof(*row->images) * move);
+                                }
+                            }
 
-                            size_t move = i - i0;
-                            memmove(row->images + i0, row->images + i0 + 1, sizeof(*row->images) * move);
+                            row->images[i] = selected;
                         } else {
-
-                            size_t move = i0 - i;
-                            memmove(row->images + i + 1, row->images + i, sizeof(*row->images) * move);
+                            ctm_row_pop_image(tm, selected, false);
+                            array_push(row->images, selected);
                         }
 
-                        //printf(TUI_ESC_CODE_GOTO(0,0));
-                        //printff("i %zu, len %zu, move %zu img %.*s", i, len, move, SO_F(selected->filename));
+                        /* set new owner */
+                        selected->row_owner = row;
 
-                        row->images[i] = selected;
-                    } else {
-                        ctm_row_pop_image(tm, selected, false);
-                        array_push(row->images, selected);
+                        // TODO: does not get dirty ... selected->render.is_clean = false;
                     }
-
-                    /* set new owner */
-                    selected->row_owner = row;
-
-                    // TODO: does not get dirty ... selected->render.is_clean = false;
                 }
             }
-            /* clear selection */
-            tm->image_select.select.image = 0;
         }
     }
 
@@ -408,7 +408,7 @@ bool ctm_update(void *user) {
 
     //tm->input_mouse_prev = tm->input.mouse;
     tm->input = (Ctm_Input){0};
-    return true;
+    return render;
 }
 
 void ctm_render(Tui_Buffer *buffer, void *user) {
@@ -459,7 +459,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                     }
                 }
             } else {
-                tui_buffer_draw(buffer,image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_basename(image->filename));
+                tui_buffer_draw(buffer,image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_nodir(image->filename));
             }
         }
 
