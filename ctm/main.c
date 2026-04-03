@@ -371,8 +371,18 @@ bool ctm_update(void *user) {
         if(selected) {
             tm->image_select.select.image = selected;
             // TODO : needs to check if is_valid ++tm->image_select.select.image->tui_image->z;
+            Tui_Point dg = {
+                .x = (tm->config.dim_cell_grab.x - tm->config.dim_cell.x) / 2,
+                .y = (tm->config.dim_cell_grab.y - tm->config.dim_cell.y) / 2,
+            };
+            
             tm->image_select.select.float_origin = tm->input.mouse.pos;
             tm->image_select.select.float_anc = selected->render.rc_image.anc;
+            tm->image_select.select.float_anc.x -= dg.x;
+            tm->image_select.select.float_anc.y -= dg.y;
+            tm->image_select.select.image->render.rc_image.dim.x = tm->config.dim_cell_grab.x;
+            tm->image_select.select.image->render.rc_image.dim.y = tm->config.dim_cell_grab.y;
+
             tm->image_select.select.image->render.is_floating = true;
             tm->image_select.select.image->render.is_clean = false;
         }
