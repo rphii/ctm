@@ -26,6 +26,22 @@ void ctm_loader_image_init(Ctm_Loader_Image *loader, struct Ctm *ctm, size_t n_j
 
 }
 
+void ctm_loader_set_fallback(Ctm_Image *image, uint8_t r, uint8_t g, uint8_t b) {
+
+    image->render.fallback_bg.r = r;
+    image->render.fallback_bg.g = g;
+    image->render.fallback_bg.b = b;
+
+    uint8_t bright = color_as_brightness((Color){ .r = r, .g = g, .b = b, .a = 0xFF }, COLOR_GAMMA_DEFAULT);
+    //printff("bright %u", bright);
+
+    image->render.fallback_fg.r = bright > 50 ? 0 : 0xFF;
+    image->render.fallback_fg.g = bright > 50 ? 0 : 0xFF;
+    image->render.fallback_fg.b = bright > 50 ? 0 : 0xFF;
+
+    image->render.fallback_bg.type = TUI_COLOR_RGB;
+    image->render.fallback_fg.type = TUI_COLOR_RGB;
+}
 
 void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
     Ctm_Queue_Do *qd = user;
@@ -66,25 +82,7 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
             color[1] = color[0];
             color[2] = color[0];
         }
-        Color col = {0};
-        col.r = color[0];
-        col.g = color[1];
-        col.b = color[2];
-        col.a = 0xFF;
-
-        load->render.fallback_bg.r = col.r;
-        load->render.fallback_bg.g = col.g;
-        load->render.fallback_bg.b = col.b;
-
-        uint8_t bright = color_as_brightness(col, COLOR_GAMMA_DEFAULT);
-        //printff("bright %u", bright);
-
-        load->render.fallback_fg.r = bright > 50 ? 0 : 0xFF;
-        load->render.fallback_fg.g = bright > 50 ? 0 : 0xFF;
-        load->render.fallback_fg.b = bright > 50 ? 0 : 0xFF;
-
-        load->render.fallback_bg.type = TUI_COLOR_RGB;
-        load->render.fallback_fg.type = TUI_COLOR_RGB;
+        ctm_loader_set_fallback(load, color[0], color[1], color[2]);
 
     }
 defer:
@@ -100,6 +98,8 @@ defer:
         /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
         //tui_sync_main_update(&qd->ctm->tui_sync.main);
         tui_sync_main_both(&qd->ctm->tui_sync.main);
+    } else {
+        ctm_loader_set_fallback(load, rand(), rand(), rand());
     }
 
     free(qd);

@@ -36,12 +36,12 @@ bool ctm_image_is_valid(Ctm_Image *img) {
 
 bool ctm_image_is_loaded(Ctm_Image *img) {
     if(!img) return false;
-    bool is_valid = false;
+    bool is_loaded = false;
     if(!pthread_mutex_trylock(&img->mtx)) {
-        is_valid = img->loaded && img->tui_image;
+        is_loaded = img->loaded;
         pthread_mutex_unlock(&img->mtx);
     }
-    return is_valid;
+    return is_loaded;
 }
 
 void v_ctm_image_init_from_paths(V_Ctm_Image *v, VSo paths) {

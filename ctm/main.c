@@ -318,9 +318,9 @@ bool ctm_update(void *user) {
 
         Ctm_Grid *grid = &tm->grid;
         Ctm_Image *selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
-        if(selected && ctm_image_is_valid(selected)) {
+        if(selected) {
             tm->image_select.select.image = selected;
-            ++tm->image_select.select.image->tui_image->z;
+            // TODO : needs to check if is_valid ++tm->image_select.select.image->tui_image->z;
             tm->image_select.select.float_origin = tm->input.mouse.pos;
             tm->image_select.select.float_anc = selected->render.rc_image.anc;
             tm->image_select.select.image->render.is_floating = true;
@@ -421,13 +421,12 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         .dim = (Tui_Point){ .x = buffer->dimension.x, .y = 1 }
     };
 
-
     Ctm_Grid *grid = &tm->grid;
     Ctm_Row **itE = array_itE(grid->rows);
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
         Ctm_Row *row = *it;
         tui_buffer_draw(buffer, row->render.rc_bg, 0, &row->render.bg_bg, 0, SO);
-        tui_buffer_draw(buffer, row->render.rc_ul, &row->render.fg_ul, 0, &(Tui_Fx){ .ul = true }, SO);
+        tui_buffer_draw(buffer, row->render.rc_ul, &row->render.fg_ul, &row->render.bg_bg, &(Tui_Fx){ .ul = true }, SO);
         tui_buffer_draw(buffer, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
     }
 
@@ -437,7 +436,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         Ctm_Image **jtE = array_itE(row->images);
         for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
             Ctm_Image *image = *jt;
-            if(false && tm->config.is_graphics_supported && ctm_image_is_valid(image)) {
+            if(tm->config.is_graphics_supported && ctm_image_is_valid(image)) {
                 /* make sure the image is updated on the TUI side */
                 if(!image->render.is_send_error && !image->render.is_send_ok) {
                     image->render.is_send_error = tui_image_update(tm->tui_core, image->tui_image, 0);
@@ -477,7 +476,7 @@ void ctm_resized(Tui_Point size, Tui_Point pixels, void *user) {
     ctm_grid_all_dirty(&tm->grid);
     tm->dimensions = size;
 
-    //tm->config.is_graphics_supported = tui_image_is_supported(tm->tui_core);
+    //tm->config.is_graphics_supported = true;
 }
 
 void ctm_row_free(Ctm_Row **row) {
@@ -522,6 +521,7 @@ int main(int argc, const char **argv) {
         tm.tui_core_callbacks.resized = ctm_resized;
         tui_enter();
         tui_core_init(tm.tui_core, &tm.tui_core_callbacks, &tm.tui_sync, &tm);
+        tm.config.is_graphics_supported = tui_image_is_supported(tm.tui_core);
     }
 
     /* init all other ctm structs */
