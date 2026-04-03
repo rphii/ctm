@@ -41,6 +41,7 @@ void ctm_image_free(Ctm_Image *img);
 int ctm_image_cmp(Ctm_Image *a, Ctm_Image *b);
 
 bool ctm_image_is_valid(Ctm_Image *img);
+bool ctm_image_is_loaded(Ctm_Image *img);
 
 VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, BASE);
 VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, ERR);

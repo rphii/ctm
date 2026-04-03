@@ -34,6 +34,16 @@ bool ctm_image_is_valid(Ctm_Image *img) {
     return is_valid;
 }
 
+bool ctm_image_is_loaded(Ctm_Image *img) {
+    if(!img) return false;
+    bool is_valid = false;
+    if(!pthread_mutex_trylock(&img->mtx)) {
+        is_valid = img->loaded && img->tui_image;
+        pthread_mutex_unlock(&img->mtx);
+    }
+    return is_valid;
+}
+
 void v_ctm_image_init_from_paths(V_Ctm_Image *v, VSo paths) {
     size_t len = array_len(paths);
     v_ctm_image_resize(v, len);

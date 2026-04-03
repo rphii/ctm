@@ -251,35 +251,69 @@ size_t ctm_row_image_index(Ctm_Row *row, Ctm_Image *image) {
     return len;
 }
 
-Ctm_Image **ctm_image_select_get(Ctm_Image_Select *select) {
+Ctm_Image *ctm_grid_image_from_pos(Ctm_Grid *grid, Tui_Point pos) {
+    Ctm_Row **itE = array_itE(grid->rows);
+    Ctm_Image *result = 0;
+    for(Ctm_Row **it = grid->rows; it < itE; ++it) {
+        Ctm_Row *row = *it;
+        Ctm_Image **jtE = array_itE(row->images);
+        for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
+            Ctm_Image *image = *jt;
+            if(tui_rect_encloses_point(image->render.rc_image, pos)) {
+                //if(ctm_image_is_valid(image)) {
+                    result = image;
+                    goto break2;
+                //} else {
+                //}
+            }
+        }
+        continue; break2: break;
+    }
+    return result;
+}
+
+
+void ctm_row_pop_image(Ctm *tm, Ctm_Image *image, bool delete) {
+    if(!image) return;
+    /* pop from owner */
+    Ctm_Row *row_owner = image->row_owner;
+    ASSERT_ARG(row_owner);
+    size_t row_owner_len = array_len(row_owner->images);
+    ASSERT_ARG(row_owner_len);
+    size_t row_owner_index = ctm_row_image_index(row_owner, image);
+    if(row_owner_index >= row_owner_len) return;
+    size_t row_owner_move = row_owner_len - row_owner_index - 1;
+
+    memmove(row_owner->images + row_owner_index, row_owner->images + row_owner_index + 1, sizeof(*row_owner->images) * row_owner_move);
+    array_resize(row_owner->images, row_owner_len - 1);
+
+    if(delete && ctm_image_is_valid(image)) {
+        tui_image_clear_id_image(tm->tui_core, image->tui_image->id);
+    }
+
 }
 
 bool ctm_update(void *user) {
     Ctm *tm = user;
     bool render = false;
 
+    if(tm->input.mouse.m.press) {
+        Ctm_Grid *grid = &tm->grid;
+        Ctm_Image *selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
+        ctm_row_pop_image(tm, selected, true);
+    }
+
     if(tm->input.mouse.l.press) {
 
         Ctm_Grid *grid = &tm->grid;
-        Ctm_Row **itE = array_itE(grid->rows);
-        for(Ctm_Row **it = grid->rows; it < itE; ++it) {
-            Ctm_Row *row = *it;
-            Ctm_Image **jtE = array_itE(row->images);
-            for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
-                Ctm_Image *image = *jt;
-                if(ctm_image_is_valid(image)) {
-                    if(tui_rect_encloses_point(image->render.rc_image, tm->input.mouse.pos)) {
-                        tm->image_select.select.image = image;
-                        image->render.is_floating = true;
-                        ++tm->image_select.select.image->tui_image->z;
-                        tm->image_select.select.image->render.is_clean = false;
-                        tm->image_select.select.float_origin = tm->input.mouse.pos;
-                        tm->image_select.select.float_anc = image->render.rc_image.anc;
-                        goto break2;
-                    }
-                }
-            }
-            continue; break2: break;
+        Ctm_Image *selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
+        if(selected && ctm_image_is_valid(selected)) {
+            tm->image_select.select.image = selected;
+            ++tm->image_select.select.image->tui_image->z;
+            tm->image_select.select.float_origin = tm->input.mouse.pos;
+            tm->image_select.select.float_anc = selected->render.rc_image.anc;
+            tm->image_select.select.image->render.is_floating = true;
+            tm->image_select.select.image->render.is_clean = false;
         }
 
     }
@@ -305,23 +339,14 @@ bool ctm_update(void *user) {
                 if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
                     array_push(row->images, selected);
 
-                    /* pop from owner */
-                    Ctm_Row *row_owner = selected->row_owner;
-                    ASSERT_ARG(row_owner);
-                    size_t row_owner_len = array_len(row_owner->images);
-                    ASSERT_ARG(row_owner_len);
-                    size_t row_owner_index = ctm_row_image_index(row_owner, selected);
-                    ASSERT(row_owner_index < row_owner_len, "row_index has to be < row_owner_len");
-                    size_t row_owner_move = row_owner_len - row_owner_index - 1;
-
-                    memmove(row_owner->images + row_owner_index, row_owner->images + row_owner_index + 1, sizeof(*row_owner->images) * row_owner_move);
-                    array_resize(row_owner->images, row_owner_len - 1);
+                    ctm_row_pop_image(tm, selected, false);
 
                     //Ctm_Image *last = array_pop(row_owner->images);
                     //row_owner->images(array_len(row_owner->images)
 
                     /* set new owner */
                     selected->row_owner = row;
+                    // TODO: does not get dirty ... selected->render.is_clean = false;
                 }
             }
             /* clear selection */
@@ -393,6 +418,8 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                         tui_image_clear_id_image(tm->tui_core, image->tui_image->id);
                     }
                 }
+            } else {
+                tui_buffer_draw(buffer,image->render.rc_image, 0, 0, 0, so_get_basename(image->filename));
             }
         }
 
