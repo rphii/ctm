@@ -76,17 +76,6 @@ void ctm_row_image_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row
     }
 }
 
-size_t ctm_row_get_rows(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x) {
-    size_t w_need = array_len(row->images) * config->dim_cell.x;
-    size_t w = config->dim_cell.x;
-    if(!w_need) return 1;
-    size_t n_need = (w_need) / w;
-    size_t n_have = (rc_grid_dim_x - config->w_title) / w;
-    size_t n_h = n_need / n_have;
-    if(!n_h) return 1;
-    return n_h;
-}
-
 size_t ctm_row_get_cols(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x) {
 
     size_t w_single = config->dim_cell.x;
@@ -98,6 +87,29 @@ size_t ctm_row_get_cols(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x)
     } else {
         return w_need / w_single;
     }
+}
+
+size_t ctm_row_get_rows(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x) {
+
+    size_t n_have = array_len(row->images);
+    size_t n_cols = ctm_row_get_cols(config, row, rc_grid_dim_x);
+    if(!n_cols) return 1;
+    size_t n_rows = (n_have + n_cols - 1) / n_cols;
+    return n_rows;
+
+#if 0
+    size_t w_need = array_len(row->images) * config->dim_cell.x;
+    size_t w_single = config->dim_cell.x;
+    size_t w_have = rc_grid_dim_x - config->w_title;
+
+    if(!w_need) return 1;
+    size_t n_need = (w_need + w_single - 1) / w_single;
+    size_t n_have = (w_have + w_single - 1) / w_single;
+    //size_t n_h = (n_need + n_have - 1) / n_have;
+    size_t n_h = (n_need) / n_have;
+    if(!n_h) return 1;
+    return n_h;
+#endif
 }
 
 void ctm_row_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row, size_t y0) {
