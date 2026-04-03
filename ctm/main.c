@@ -82,7 +82,7 @@ size_t ctm_row_get_rows(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x)
     if(!w_need) return 1;
     size_t n_need = (w_need) / w;
     size_t n_have = (rc_grid_dim_x - config->w_title) / w;
-    size_t n_h = (n_need + n_have - 1) / n_have;
+    size_t n_h = n_need / n_have;
     if(!n_h) return 1;
     return n_h;
 }
@@ -94,7 +94,7 @@ size_t ctm_row_get_cols(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x)
     size_t w_have = rc_grid_dim_x - config->w_title;
 
     if(w_need > w_have) {
-        return w_have / w_single;
+        return (w_have + w_single - 1) / w_single;
     } else {
         return w_need / w_single;
     }
@@ -567,7 +567,7 @@ int main(int argc, const char **argv) {
     NEW(Ctm_Row, row);
     row->name = so("E");
     row->bg = (Tui_Color){ .r = 0x00, .g = 0xFF, .b = 0x00, .type = TUI_COLOR_RGB };
-    //row->render.bg_bg = (Tui_Color){ .r = 0x4, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
+    //row->render.bg_bg = (Tui_Color){ .r = 0x55, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
     row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
 
     for(size_t i = 0; i < v_ctm_image_length(tm.v_images); ++i) {
