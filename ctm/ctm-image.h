@@ -5,6 +5,7 @@
 #include <rltui.h>
 
 struct Ctm_Loader_Image;
+struct Ctm_Row;
 
 typedef struct Ctm_Image {
     So filename;
@@ -16,7 +17,9 @@ typedef struct Ctm_Image {
     int unique_id;
     pthread_mutex_t mtx; /* mutex for data */
     Tui_Image *tui_image;
-    Tui_Point coords;
+    //Tui_Point coords;
+
+    struct Ctm_Row *row_owner;
 
     struct {
         Tui_Rect rc_image_prev;
@@ -24,9 +27,15 @@ typedef struct Ctm_Image {
         bool is_send_ok;
         bool is_send_error;
         bool is_clean;
+        bool is_floating;
     } render;
 
 } Ctm_Image;
+
+typedef struct Ctm_Image_LL {
+    Ctm_Image *prev;
+    Ctm_Image *next;
+} Ctm_Image_LL;
 
 void ctm_image_free(Ctm_Image *img);
 int ctm_image_cmp(Ctm_Image *a, Ctm_Image *b);

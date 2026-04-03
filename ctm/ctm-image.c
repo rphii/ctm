@@ -25,6 +25,7 @@ int ctm_image_cmp(Ctm_Image *a, Ctm_Image *b) {
 }
 
 bool ctm_image_is_valid(Ctm_Image *img) {
+    if(!img) return false;
     bool is_valid = false;
     if(!pthread_mutex_trylock(&img->mtx)) {
         is_valid = img->loaded && img->tui_image;
