@@ -251,6 +251,17 @@ size_t ctm_row_image_index(Ctm_Row *row, Ctm_Image *image) {
     return len;
 }
 
+size_t ctm_row_image_index_from_pos(Ctm_Grid *grid, Ctm_Row *row, Tui_Point pos) {
+    size_t len = array_len(row->images);
+    size_t result = len;
+    Tui_Point pt = tui_rect_project_point(row->render.rc_images, pos);
+    if(!pt.x) return len;
+    size_t w_cell = grid->dim_cell.x;
+    size_t i = pt.x / w_cell;
+    if(i < len) result = i;
+    return result;
+}
+
 Ctm_Image *ctm_grid_image_from_pos(Ctm_Grid *grid, Tui_Point pos) {
     Ctm_Row **itE = array_itE(grid->rows);
     Ctm_Image *result = 0;
@@ -337,15 +348,41 @@ bool ctm_update(void *user) {
                 Ctm_Row *row = *it;
                 //printff("rc %u %u %u %u",row->render.rc_grid.anc.x,row->render.rc_grid.anc.y,row->render.rc_grid.dim.x,row->render.rc_grid.dim.y);
                 if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
-                    array_push(row->images, selected);
 
-                    ctm_row_pop_image(tm, selected, false);
+                    size_t i = ctm_row_image_index_from_pos(&tm->grid, row, tm->input.mouse.pos);
+                    if(i + 1 < array_len(row->images)) {
 
-                    //Ctm_Image *last = array_pop(row_owner->images);
-                    //row_owner->images(array_len(row_owner->images)
+                        size_t i0 = ctm_row_image_index(row, selected);
+                        size_t len = array_len(row->images);
+
+                            if(row != selected->row_owner) {
+                                ++len;
+                                ctm_row_pop_image(tm, selected, false);
+                                array_resize(row->images, len);
+                            }
+
+                        if(i0 < i) {
+
+                            size_t move = i - i0;
+                            memmove(row->images + i0, row->images + i0 + 1, sizeof(*row->images) * move);
+                        } else {
+
+                            size_t move = i0 - i;
+                            memmove(row->images + i + 1, row->images + i, sizeof(*row->images) * move);
+                        }
+
+                        //printf(TUI_ESC_CODE_GOTO(0,0));
+                        //printff("i %zu, len %zu, move %zu img %.*s", i, len, move, SO_F(selected->filename));
+
+                        row->images[i] = selected;
+                    } else {
+                        ctm_row_pop_image(tm, selected, false);
+                        array_push(row->images, selected);
+                    }
 
                     /* set new owner */
                     selected->row_owner = row;
+
                     // TODO: does not get dirty ... selected->render.is_clean = false;
                 }
             }
@@ -396,7 +433,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         Ctm_Image **jtE = array_itE(row->images);
         for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
             Ctm_Image *image = *jt;
-            if(ctm_image_is_valid(image)) {
+            if(false && ctm_image_is_valid(image)) {
                 /* make sure the image is updated on the TUI side */
                 if(!image->render.is_send_error && !image->render.is_send_ok) {
                     image->render.is_send_error = tui_image_update(tm->tui_core, image->tui_image, 0);
