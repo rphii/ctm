@@ -44,6 +44,7 @@ typedef struct Ctm_Input {
     int move_x;
     int move_y;
     bool space;
+    Tui_Input_List input_id;
     Tui_Mouse mouse;
 } Ctm_Input;
 
@@ -53,6 +54,7 @@ typedef struct Ctm_Image_Select {
         Ctm_Image *image;
         Tui_Point float_anc;
         Tui_Point float_origin;
+        bool is_kbd;
     } select;
 
     struct {
