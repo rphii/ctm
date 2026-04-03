@@ -28,8 +28,8 @@ typedef struct Ctm_Image {
         Tui_Color fallback_fg;
         bool is_send_ok;
         bool is_send_error;
-        bool is_clean;
-        bool is_floating;
+        bool is_clean; /* if draw ok */
+        bool is_floating; /* if grabbed by mouse */
     } render;
 
 } Ctm_Image;

@@ -33,8 +33,6 @@ typedef struct Ctm_Row {
 } Ctm_Row, **Ctm_Rows;
 
 typedef struct Ctm_Grid {
-    ssize_t w_title;
-    Tui_Point dim_cell;
     Ctm_Rows rows;
 
     struct {
@@ -66,6 +64,9 @@ typedef struct Ctm_Image_Select {
 
 typedef struct Ctm_Config {
     bool is_graphics_supported;
+    Tui_Point dim_cell;
+    Tui_Point dim_cell_grab;
+    ssize_t w_title;
 } Ctm_Config;
 
 typedef struct Ctm {

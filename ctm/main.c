@@ -49,10 +49,10 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
     return update;
 }
 
-void ctm_row_image_update(Tui_Point dimensions, Ctm_Grid *grid, Ctm_Row *row, size_t y0, size_t x0) {
+void ctm_row_image_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row, size_t y0, size_t x0) {
     Tui_Rect rc = {0};
     rc.anc = (Tui_Point){ .x = x0, .y = y0 };
-    rc.dim = grid->dim_cell;
+    rc.dim = config->dim_cell;
     Ctm_Image **itE = array_itE(row->images);
     for(Ctm_Image **it = row->images; it < itE; ++it) {
         Ctm_Image *image = *it;
@@ -68,30 +68,30 @@ void ctm_row_image_update(Tui_Point dimensions, Ctm_Grid *grid, Ctm_Row *row, si
             image->render.rc_image = (Tui_Rect){0};
         }
 #endif
-        rc.anc.x += grid->dim_cell.x;
+        rc.anc.x += config->dim_cell.x;
         if(rc.anc.x + rc.dim.x >= dimensions.x) {
             rc.anc.x = x0;
-            rc.anc.y += grid->dim_cell.y;
+            rc.anc.y += config->dim_cell.y;
         }
     }
 }
 
-size_t ctm_row_get_rows(Ctm_Grid *grid, Ctm_Row *row) {
-    size_t w_need = array_len(row->images) * grid->dim_cell.x;
-    size_t w = grid->dim_cell.x;
+size_t ctm_row_get_rows(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x) {
+    size_t w_need = array_len(row->images) * config->dim_cell.x;
+    size_t w = config->dim_cell.x;
     if(!w_need) return 1;
     size_t n_need = (w_need) / w;
-    size_t n_have = (grid->render.rc_grid.dim.x - grid->w_title) / w;
+    size_t n_have = (rc_grid_dim_x - config->w_title) / w;
     size_t n_h = (n_need + n_have - 1) / n_have;
     if(!n_h) return 1;
     return n_h;
 }
 
-size_t ctm_row_get_cols(Ctm_Grid *grid, Ctm_Row *row) {
+size_t ctm_row_get_cols(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x) {
 
-    size_t w_single = grid->dim_cell.x;
+    size_t w_single = config->dim_cell.x;
     size_t w_need = array_len(row->images) * w_single;
-    size_t w_have = grid->render.rc_grid.dim.x - grid->w_title;
+    size_t w_have = rc_grid_dim_x - config->w_title;
 
     if(w_need > w_have) {
         return w_have / w_single;
@@ -100,23 +100,22 @@ size_t ctm_row_get_cols(Ctm_Grid *grid, Ctm_Row *row) {
     }
 }
 
-void ctm_row_update(Tui_Point dimensions, Ctm_Grid *grid, Ctm_Row *row, size_t y0) {
-    grid->render.rc_grid.dim = dimensions;
+void ctm_row_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row, size_t y0) {
 
     Tui_Rect rc = {0};
     
     /* figure out content rc */
-    rc.anc.x = grid->w_title;
+    rc.anc.x = config->w_title;
     rc.anc.y = y0;
-    size_t n_w = ctm_row_get_cols(grid, row);
-    size_t n_h = ctm_row_get_rows(grid, row);
-    rc.dim.y = n_h * grid->dim_cell.y;
-    rc.dim.x = n_w * grid->dim_cell.x;
+    size_t n_w = ctm_row_get_cols(config, row, dimensions.x - config->w_title);
+    size_t n_h = ctm_row_get_rows(config, row, dimensions.x - config->w_title);
+    rc.dim.y = n_h * config->dim_cell.y;
+    rc.dim.x = n_w * config->dim_cell.x;
     row->render.rc_images = rc;
 
     /* figure out backround rcs */
     row->render.rc_bg = row->render.rc_images;
-    row->render.rc_bg.dim.x = dimensions.x - grid->w_title;
+    row->render.rc_bg.dim.x = dimensions.x - config->w_title;
 
     row->render.rc_ul = row->render.rc_bg;
     row->render.rc_ul.anc.y += row->render.rc_ul.dim.y - 1;
@@ -126,7 +125,7 @@ void ctm_row_update(Tui_Point dimensions, Ctm_Grid *grid, Ctm_Row *row, size_t y
     rc.anc.x = 0;
     rc.anc.y = y0;
     rc.dim.y = row->render.rc_images.dim.y;
-    rc.dim.x = grid->w_title;
+    rc.dim.x = config->w_title;
     row->render.rc_name = rc;
 
     /* full width */
@@ -134,14 +133,15 @@ void ctm_row_update(Tui_Point dimensions, Ctm_Grid *grid, Ctm_Row *row, size_t y
     row->render.rc_row.dim.x = dimensions.x;
     row->render.rc_row.dim.y = row->render.rc_name.dim.y;
 
-    ctm_row_image_update(dimensions, grid, row, y0, row->render.rc_images.anc.x);
+    ctm_row_image_update(dimensions, config, row, y0, row->render.rc_images.anc.x);
 }
 
-void ctm_grid_update(Tui_Point dimension, Ctm_Grid *grid) {
+void ctm_grid_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Grid *grid) {
     size_t y0 = 0;
     Ctm_Row **itE = array_itE(grid->rows);
+    grid->render.rc_grid.dim = dimensions;
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
-        ctm_row_update(dimension, grid, *it, y0);
+        ctm_row_update(dimensions, config, *it, y0);
         y0 += (*it)->render.rc_name.dim.y;
     }
 }
@@ -251,12 +251,12 @@ size_t ctm_row_image_index(Ctm_Row *row, Ctm_Image *image) {
     return len;
 }
 
-size_t ctm_row_image_index_from_pos(Ctm_Grid *grid, Ctm_Row *row, Tui_Point pos) {
+size_t ctm_row_image_index_from_pos(Ctm_Config *config, Ctm_Row *row, Tui_Point pos) {
     size_t len = array_len(row->images);
     size_t result = len;
     Tui_Point pt = tui_rect_project_point(row->render.rc_images, pos);
     if(!pt.x) return len;
-    size_t w_cell = grid->dim_cell.x;
+    size_t w_cell = config->dim_cell.x;
     size_t i = pt.x / w_cell;
     if(i < len) result = i;
     return result;
@@ -304,6 +304,44 @@ void ctm_row_pop_image(Ctm *tm, Ctm_Image *image, bool delete) {
 
 }
 
+void ctm_row_image_set(Ctm *tm, Ctm_Row *row, Ctm_Image *image, size_t i) {
+
+    /* insert into certain position */
+    if(i + 1 < array_len(row->images)) {
+
+        size_t i0 = ctm_row_image_index(row, image);
+        size_t len = array_len(row->images);
+
+        if(row != image->row_owner) {
+            ++len;
+            ctm_row_pop_image(tm, image, false);
+            array_resize(row->images, len);
+        }
+
+        if(i0 < i) {
+            size_t move = i - i0;
+            if(move) {
+                memmove(row->images + i0, row->images + i0 + 1, sizeof(*row->images) * move);
+            }
+        } else {
+            size_t move = i0 - i;
+            if(move) {
+                memmove(row->images + i + 1, row->images + i, sizeof(*row->images) * move);
+            }
+        }
+
+        row->images[i] = image;
+    } else {
+        ctm_row_pop_image(tm, image, false);
+        array_push(row->images, image);
+    }
+
+    /* set new owner */
+    image->row_owner = row;
+
+    // TODO: does not get dirty...? ... image->render.is_clean = false;
+}
+
 bool ctm_update(void *user) {
     Ctm *tm = user;
     bool render = false;
@@ -349,49 +387,16 @@ bool ctm_update(void *user) {
                     Ctm_Row *row = *it;
                     //printff("rc %u %u %u %u",row->render.rc_grid.anc.x,row->render.rc_grid.anc.y,row->render.rc_grid.dim.x,row->render.rc_grid.dim.y);
                     if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
-
                         /* insert into certain position */
-                        size_t i = ctm_row_image_index_from_pos(&tm->grid, row, tm->input.mouse.pos);
-                        if(i + 1 < array_len(row->images)) {
-
-                            size_t i0 = ctm_row_image_index(row, selected);
-                            size_t len = array_len(row->images);
-
-                            if(row != selected->row_owner) {
-                                ++len;
-                                ctm_row_pop_image(tm, selected, false);
-                                array_resize(row->images, len);
-                            }
-
-                            if(i0 < i) {
-                                size_t move = i - i0;
-                                if(move) {
-                                    memmove(row->images + i0, row->images + i0 + 1, sizeof(*row->images) * move);
-                                }
-                            } else {
-                                size_t move = i0 - i;
-                                if(move) {
-                                    memmove(row->images + i + 1, row->images + i, sizeof(*row->images) * move);
-                                }
-                            }
-
-                            row->images[i] = selected;
-                        } else {
-                            ctm_row_pop_image(tm, selected, false);
-                            array_push(row->images, selected);
-                        }
-
-                        /* set new owner */
-                        selected->row_owner = row;
-
-                        // TODO: does not get dirty ... selected->render.is_clean = false;
+                        size_t i = ctm_row_image_index_from_pos(&tm->config, row, tm->input.mouse.pos);
+                        ctm_row_image_set(tm, row, selected, i);
                     }
                 }
             }
         }
     }
 
-    ctm_grid_update(tm->dimensions, &tm->grid);
+    ctm_grid_update(tm->dimensions, &tm->config, &tm->grid);
 
 #if 1
     if(!tm->image_select.select.image) {
@@ -573,9 +578,11 @@ int main(int argc, const char **argv) {
 
     array_push(tm.grid.rows, row);
 
-    tm.grid.dim_cell.y = 5;
-    tm.grid.dim_cell.x = 10;
-    tm.grid.w_title = 10;
+    tm.config.dim_cell.y = 5;
+    tm.config.dim_cell.x = 10;
+    tm.config.dim_cell_grab.y = 7;
+    tm.config.dim_cell_grab.x = 14;
+    tm.config.w_title = 10;
 
     tm.image_select.render.bg = (Tui_Color){ .r = 0x22, .g = 0x44, .b = 0x25, .type = TUI_COLOR_RGB };
 
