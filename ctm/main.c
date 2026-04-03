@@ -61,8 +61,18 @@ void ctm_row_image_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row
 #endif
         //if(rc.anc.x >= x0 && rc.anc.y >= y0) {
             if(!image->render.is_floating) {
-                image->render.rc_image = rc;
+
+                Tui_Rect rc2 = rc;
+                if(image->render.is_selected) {
+                    rc2.anc.x -= (config->dim_cell_grab.x - config->dim_cell.x) / 2;
+                    rc2.anc.y -= (config->dim_cell_grab.y - config->dim_cell.y) / 2;
+                    rc2.dim.x = config->dim_cell_grab.x;
+                    rc2.dim.y = config->dim_cell_grab.y;
+                }
+
+                image->render.rc_image = rc2;
             }
+
 #if 0
         } else {
             image->render.rc_image = (Tui_Rect){0};
@@ -198,6 +208,11 @@ void ctm_image_select_move_x(Ctm *tm, Ctm_Image_Select *select, ssize_t n) {
 bool ctm_grid_index_image(Ctm_Grid *grid, Ctm_Row *row, Ctm_Image *image, size_t *index) {
     size_t result = 0;
     return false;
+}
+
+void ctm_image_unselect(Ctm_Image *image) {
+    image->render.is_clean &= !image->render.is_selected; /* mark as not clean if was selected */
+    image->render.is_selected = false;
 }
 
 void ctm_image_unfloat(Ctm_Image *image) {
@@ -480,7 +495,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                     image->tui_image->src.dim = image->tui_image->dimensions;
                     image->tui_image->z = 0;
 
-                    if(tui_rect_contains_rect(row->render.rc_images, image->render.rc_image) || image->render.is_floating) {
+                    if(tui_rect_contains_rect(row->render.rc_images, image->render.rc_image) || image->render.is_floating || image->render.is_selected) {
                         tui_image_render(tm->tui_core, image->tui_image, image->tui_image->id, 0);
                     } else {
                         tui_image_clear_id_image(tm->tui_core, image->tui_image->id);

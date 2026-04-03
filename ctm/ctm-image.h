@@ -30,6 +30,7 @@ typedef struct Ctm_Image {
         bool is_send_error;
         bool is_clean; /* if draw ok */
         bool is_floating; /* if grabbed by mouse */
+        bool is_selected; /* if selected with kbd mouse */
     } render;
 
 } Ctm_Image;
