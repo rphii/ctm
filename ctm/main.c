@@ -198,6 +198,7 @@ bool ctm_update(void *user) {
                 ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.select_x, tm->input.select_y, &i_col, &row_new, true);
 
                 Ctm_Image *image_old = image;
+                printf(TUI_ESC_CODE_GOTO(0,0));
 
                 if(i_col >= 0 && i_col < array_len(row_new->images)) {
                     ctm_image_unboth(image_old);

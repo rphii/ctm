@@ -160,6 +160,7 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
         } else if(y_move > 0) {
             y = 0;
         }
+        cols_real = array_len(row_new->images);
     }
 
     ssize_t i_col = x + y * cols;
