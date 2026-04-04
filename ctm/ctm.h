@@ -71,6 +71,7 @@ typedef struct Ctm_Config {
     VSo categories_template;
     ssize_t scroll_mult;
     bool scroll_invert;
+    bool random_placement;
 
     ssize_t thumb;
     So argp_dim_cell;

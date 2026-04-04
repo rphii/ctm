@@ -176,16 +176,22 @@ void ctm_grid_update(Tui_Rect rc_grid, Ctm_Config *config, Ctm_Grid *grid) {
     }
 }
 
-Ctm_Image *ctm_image_find_first_best(Ctm_Config *config, Ctm_Grid *grid, Ctm_Row **row0, Ctm_Image *fallback, int direction) {
+Ctm_Image *ctm_image_find_first_best(Ctm_Config *config, Ctm_Grid *grid, Ctm_Row *row0, Ctm_Image *fallback, int direction) {
     if(!direction) return fallback;
     /* find first */
     Ctm_Row **itE = direction >= 0 ? array_itE(grid->rows) : grid->rows;
     Ctm_Row **it0 = direction <  0 ? array_itL(grid->rows) : grid->rows;
-    if(row0) it0 = row0 + direction;
+    //if(row0) it0 = row0 + direction;
     Ctm_Image *result = 0;
+    bool found_first = (row0 == 0);
     for(Ctm_Row **it = it0; direction >= 0 ? it < itE : it + 1 > itE; it += direction) {
         Ctm_Row *row = *it;
         if(!row) continue;
+        if(row == row0) {
+            found_first = true;
+            continue;
+        }
+        if(!found_first) continue;
         if(array_len(row->images)) {
             result = *row->images;
             break;
@@ -216,11 +222,17 @@ void ctm_image_select_move_x(Ctm *tm, Ctm_Image_Select *select, ssize_t n) {
 void ctm_image_unselect(Ctm_Image *image) {
     image->render.is_clean &= !image->render.is_selected; /* mark as not clean if was selected */
     image->render.is_selected = false;
+    if(ctm_image_is_valid(image)) {
+        image->tui_image->z = 0;
+    }
 }
 
 void ctm_image_unfloat(Ctm_Image *image) {
     image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
     image->render.is_floating = false;
+    if(ctm_image_is_valid(image)) {
+        image->tui_image->z = 0;
+    }
 }
 
 void ctm_image_unboth(Ctm_Image *image) {
@@ -228,6 +240,9 @@ void ctm_image_unboth(Ctm_Image *image) {
     image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
     image->render.is_floating = false;
     image->render.is_selected = false;
+    if(ctm_image_is_valid(image)) {
+        image->tui_image->z = 0;
+    }
 }
 
 void ctm_grid_all_dirty(Ctm_Grid *grid) {
@@ -347,7 +362,15 @@ void ctm_row_pop_image(Ctm *tm, Ctm_Image *image, bool delete) {
 }
 
 size_t ctm_image_get_grid_y(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image) {
-    size_t ycum = ctm_grid_row_index(grid, image->row_owner);
+    size_t len = array_len(grid->rows);
+    size_t ycum = 0; // ctm_grid_row_index(grid, image->row_owner);
+    for(size_t i = 0; i < len; ++i) {
+        Ctm_Row *row = array_at(grid->rows, i);
+        if(row == image->row_owner) break;
+        size_t rows = ctm_row_get_rows(config, row, row->render.rc_bg.dim.x);
+        if(!rows) ++rows;
+        ycum += rows;
+    }
     ssize_t cols = ctm_row_get_cols(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
     ssize_t index = ctm_row_image_index(image->row_owner, image);
     if(!index) return ycum;
@@ -355,7 +378,7 @@ size_t ctm_image_get_grid_y(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image
     return ycum;
 }
 
-void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ssize_t change_x, ssize_t change_y, ssize_t *col_i, ssize_t *row_change) {
+void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ssize_t change_x, ssize_t change_y, ssize_t *col_i, Ctm_Row **row_change) {
     ssize_t cols = ctm_row_get_cols(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
     ssize_t rows = ctm_row_get_rows(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
     ssize_t cols_real = array_len(image->row_owner->images);
@@ -363,11 +386,12 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
     ssize_t y_at = ctm_grid_row_index(grid, image->row_owner);
     ssize_t col_at = x_at % cols;
     ssize_t row_at = x_at / cols; /* within its grid_row */
-    ssize_t cols_this = !row_at || row_at + 1 < rows ? cols : cols_real % cols;
-    //ssize_t row_at = x_at % cols;
-    //printf(TUI_ESC_CODE_GOTO(0,0));
-    //printff("cols,rows,r=%u,%u,%u, c,t,r=%u,%u,%u",cols,rows,cols_real,col_at,cols_this,row_at);
-    ssize_t x=0,y=0,y_move=0;
+    ssize_t cols_this = cols;
+    if(row_at + 1 >= rows && cols_real > cols && cols_real % cols) {
+        cols_this = cols_real % cols;
+    }
+
+    ssize_t x = 0, y = 0, y_move = 0;
 
     ssize_t go_x = change_x;
     ssize_t go_y = change_y;
@@ -390,33 +414,55 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
         ssize_t row_new = row_at + go_y;
         if(row_new < 0) {
             row_new = 0;
-            y_move -= 1;
+            y_move -= 1; /* TODO .. */
         }
         if(row_new >= rows) {
             row_new = rows - 1;
-            y_move += 1;
+            y_move += 1; /* TODO .. */
         }
         y = row_new;
     } else {
         y = row_at;
     }
 
+    Ctm_Row *row_new = image->row_owner;
+    Ctm_Row *row_new_changed = 0;
+
+    if(y_move) {
+        ssize_t y_new = y_at + y_move;
+        if(y_new >= 0 && y_new < array_len(grid->rows)) {
+            row_new_changed = array_at(grid->rows, y_new);
+        }
+    }
+
+    if(row_new_changed) {
+        row_new = row_new_changed;
+        if(y_move < 0) {
+
+            size_t n_rows = ctm_row_get_rows(config, row_new, row_new->render.rc_bg.dim.x);
+            y = n_rows ? n_rows - 1 : 0;
+            y = 0;
+
+            size_t n_cols = ctm_row_get_cols(config, row_new, row_new->render.rc_bg.dim.x);
+            size_t n_cols_last = array_len(row_new->images) % n_cols - 1;
+
+            size_t result = x > n_cols_last ? n_cols_last : x;
+            result += n_cols * (n_rows - 1);
+
+            *col_i = result;
+            *row_change = row_new;
+            return;
+
+        } else if(y_move > 0) {
+            y = 0;
+        }
+    }
+
     ssize_t i_col = x + y * cols;
     if(i_col >= cols_real) i_col = cols_real - 1;
 
-    //*row_y = y;
     *col_i = i_col;
-    *row_change = y_move;
-
-#if 0
-    ssize_t x = 0, y = 0;
-    if(cols < cols_real) {
-        if(col_at < rows) {
-            x = x_at + (cols) % (col_at + 1);
-        } else {
-        }
-    }
-#endif
+    *row_change = row_new;
 }
 
 void ctm_row_image_set(Ctm *tm, Ctm_Row *row, Ctm_Image *image, size_t i) {
@@ -485,16 +531,16 @@ bool ctm_update(void *user) {
         tm->grid.render.rc_grid.anc.y += scroll;
     }
 
-        if(tm->grid.render.rc_grid.anc.y > 0) {
-            tm->grid.render.rc_grid.anc.y = 0;
+    if(tm->grid.render.rc_grid.anc.y > 0) {
+        tm->grid.render.rc_grid.anc.y = 0;
+    }
+    if(tm->grid.render.rc_grid.dim.y > tm->dimensions.y) {
+        if(tm->grid.render.rc_grid.dim.y + tm->grid.render.rc_grid.anc.y < tm->dimensions.y) {
+            tm->grid.render.rc_grid.anc.y = -(tm->grid.render.rc_grid.dim.y - tm->dimensions.y);
         }
-        if(tm->grid.render.rc_grid.dim.y > tm->dimensions.y) {
-            if(tm->grid.render.rc_grid.dim.y + tm->grid.render.rc_grid.anc.y < tm->dimensions.y) {
-                tm->grid.render.rc_grid.anc.y = -(tm->grid.render.rc_grid.dim.y - tm->dimensions.y);
-            }
-        } else {
-            tm->grid.render.rc_grid.anc.y = 0;
-        }
+    } else {
+        tm->grid.render.rc_grid.anc.y = 0;
+    }
 
     if(tm->input.mouse.m.press) {
         Ctm_Grid *grid = &tm->grid;
@@ -513,7 +559,12 @@ bool ctm_update(void *user) {
         selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
         if(selected) {
             tm->image_select.select.image = selected;
+
             // TODO : needs to check if is_valid ++selected->tui_image->z;
+            //if(ctm_image_is_valid(selected)) {
+                //selected->tui_image->z = 1000;
+            //}
+
             Tui_Point dg = {
                 .x = (tm->config.dim_cell_grab.x - tm->config.dim_cell.x) / 2,
                 .y = (tm->config.dim_cell_grab.y - tm->config.dim_cell.y) / 2,
@@ -598,39 +649,38 @@ bool ctm_update(void *user) {
             }
 
             if(tm->input.select_y || tm->input.select_x) {
-                ssize_t i_col = 0, y_move = 0;
-                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.select_x, tm->input.select_y, &i_col, &y_move);
-                ssize_t row = ctm_grid_row_index(&tm->grid, image->row_owner);
 
-                Ctm_Row **prow_prev = array_it(tm->grid.rows, row);
+                ssize_t i_col = 0;
+                Ctm_Row *row_new = 0;
+                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.select_x, tm->input.select_y, &i_col, &row_new);
+
                 Ctm_Image *image_old = image;
-                image = ctm_image_find_first_best(&tm->config, &tm->grid, prow_prev, image, y_move);
 
-                if(image_old != image) ctm_image_unboth(image_old);
-                tm->image_select.select.image = image;
-
-                if(i_col >= 0 && i_col < array_len(image->row_owner->images)) {
+                if(i_col >= 0 && i_col < array_len(row_new->images)) {
                     ctm_image_unboth(image_old);
-                    image = array_at(image->row_owner->images, i_col);
+                    image = array_at(row_new->images, i_col);
                     tm->image_select.select.image = image;
                 }
+
+                if(image_old != image) ctm_image_unboth(image_old);
             }
 
             if(tm->input.move_y || tm->input.move_x) {
-                ssize_t i_col = 0, y_move = 0;
-                if(tm->input.move_x) image->changed_x_index_manually = true;
-                if(tm->input.move_y) image->changed_x_index_manually = false;
 
-                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.move_x, tm->input.move_y, &i_col, &y_move);
-                ssize_t y = ctm_grid_row_index(&tm->grid, image->row_owner) + y_move;
+                ssize_t i_col = 0;
+                Ctm_Row *row_new = 0;
+                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.move_x, tm->input.move_y, &i_col, &row_new);
 
-                if(y >= 0 && y < array_len(tm->grid.rows)) {
-                    Ctm_Row *row_new = array_at(tm->grid.rows, y);
-                    if(image->changed_x_index_manually) {
-                        ctm_row_image_set(tm, row_new, image, i_col);
-                    } else {
-                        ctm_row_image_set(tm, row_new, image, array_len(row_new->images));
-                    }
+                if(row_new != image->row_owner) {
+                    image->changed_x_index_manually = false;
+                } else if(tm->input.move_x) {
+                    image->changed_x_index_manually = true;
+                }
+
+                if(image->changed_x_index_manually) {
+                    ctm_row_image_set(tm, row_new, image, i_col);
+                } else {
+                    ctm_row_image_set(tm, row_new, image, array_len(row_new->images));
                 }
             }
 
@@ -705,7 +755,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                     image->render.is_clean = true;
                     image->tui_image->dst = image->render.rc_image;
                     image->tui_image->src.dim = image->tui_image->dimensions;
-                    //image->tui_image->z = 0;
+                    image->tui_image->z = image->render.is_floating;
 
                     tui_image_render(tm->tui_core, image->tui_image, image->tui_image->id, 0);
                 }
@@ -807,9 +857,22 @@ int main(int argc, const char **argv) {
     }
 
     for(size_t i = 0; i < v_ctm_image_length(tm.v_images); ++i) {
-        Ctm_Image *image = v_ctm_image_get_at(&tm.v_images, i);
-        image->row_owner = row_last;
-        array_push(row_last->images, image);
+        if(!tm.config.random_placement) {
+            Ctm_Image *image = v_ctm_image_get_at(&tm.v_images, i);
+            image->row_owner = row_last;
+            array_push(row_last->images, image);
+        } else {
+            size_t n_rows = array_len(tm.grid.rows);
+            Ctm_Image *image = v_ctm_image_get_at(&tm.v_images, i);
+            Ctm_Row *row = array_at(tm.grid.rows, rand() % n_rows);
+            image->row_owner = row;
+#if 1
+            array_push(row->images, image);
+#else
+            size_t n_images = array_len(row->images) + 1;
+            ctm_row_image_set(&tm, row, image, rand() % n_images);
+#endif
+        }
     }
 
     ctm_loader_image_init(&tm.loader_image, &tm, number_of_processors);

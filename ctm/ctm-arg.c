@@ -89,6 +89,8 @@ void ctm_arg(Ctm *ctm) {
       argx_type_bool(x, &ctm->config.scroll_invert, &(bool){ false });
     x=argx_opt(g, 't', so("thumb"), so("set thumbnail size ( N*N )"));
       argx_type_size(x, &ctm->config.thumb, &(ssize_t){ 128 });
+    x=argx_opt(g, 0, so("random"), so("place tiles randomly"));
+      argx_type_bool(x, &ctm->config.random_placement, 0);
 
 
     //Color bg_even;
