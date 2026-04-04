@@ -15,6 +15,8 @@ typedef struct Ctm_Config {
     bool random_placement;
     bool custom_categories;
 
+    Tui_Point dim_cell_grab_fast;
+
     ssize_t thumb;
     So argp_dim_cell;
     So argp_dim_cell_grab;

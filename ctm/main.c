@@ -13,6 +13,7 @@
 
 bool ctm_input(Tui_Input *input, bool *flush, void *user) {
     Ctm *tm = user;
+    ++tm->n_input;
     Ctm_Input tm_input = tm->input;
     tm->input.input_id = input->id;
     bool update = false;
@@ -54,6 +55,7 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
 
 bool ctm_update(void *user) {
     Ctm *tm = user;
+    ++tm->n_update;
     bool render = false;
 
     bool unfloat_all = false, unselect_all = false;
@@ -102,7 +104,7 @@ bool ctm_update(void *user) {
         Ctm_Grid *grid = &tm->grid;
         Ctm_Image *selected = tm->image_select.select.image;
         if(selected) {
-            ctm_image_unboth(selected);
+            render |= ctm_image_unboth(selected);
         }
 
         selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
@@ -145,7 +147,7 @@ bool ctm_update(void *user) {
         }
         if(tm->input.mouse.l.release) {
             if(selected->render.is_floating) {
-                ctm_image_unboth(selected);
+                render |= ctm_image_unboth(selected);
                 unfloat_all = true;
                 /* find rect that would be the target for the drop */
                 Ctm_Row **itE = array_itE(tm->grid.rows);
@@ -175,7 +177,9 @@ bool ctm_update(void *user) {
             Ctm_Image *image_old = image;
             image = ctm_image_find_first_best(&tm->config, &tm->grid, 0, image, -1);
             if(image) {
-                if(image_old != image) ctm_image_unboth(image_old);
+                if(image_old != image) {
+                    render |= ctm_image_unboth(image_old);
+                }
                 tm->image_select.select.image = image;
                 image->render.is_selected = true;
             }
@@ -198,15 +202,18 @@ bool ctm_update(void *user) {
                 ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.select_x, tm->input.select_y, &i_col, &row_new, true);
 
                 Ctm_Image *image_old = image;
-                printf(TUI_ESC_CODE_GOTO(0,0));
+                //printf(TUI_ESC_CODE_GOTO(0,0));
+                //printff("new p %p i %zu",row_new,i_col);
 
                 if(i_col >= 0 && i_col < array_len(row_new->images)) {
-                    ctm_image_unboth(image_old);
+                    render |= ctm_image_unboth(image_old);
                     image = array_at(row_new->images, i_col);
                     tm->image_select.select.image = image;
                 }
 
-                if(image_old != image) ctm_image_unboth(image_old);
+                if(image_old != image) {
+                    render |= ctm_image_unboth(image_old);
+                }
             }
 
             if(tm->input.move_y || tm->input.move_x) {
@@ -247,7 +254,7 @@ bool ctm_update(void *user) {
 
     ctm_grid_update(tm->grid.render.rc_grid, &tm->config, &tm->grid);
 
-    ctm_grid_update_dirty(&tm->grid, unfloat_all, unselect_all);
+    render |= ctm_grid_update_dirty(&tm->grid, unfloat_all, unselect_all);
 
     //tm->input_mouse_prev = tm->input.mouse;
     tm->input = (Ctm_Input){0};
@@ -256,9 +263,10 @@ bool ctm_update(void *user) {
 
 void ctm_render(Tui_Buffer *buffer, void *user) {
 
-    Ctm *tm = user;
 
-    So tmp = SO;
+    Ctm *tm = user;
+    ++tm->n_render;
+
     Tui_Color fg_images = { .type = TUI_COLOR_8, .col8 = 2 };
     Tui_Rect rc_images = {
         .anc = (Tui_Point){ .x = 0, .y = 0 },
@@ -312,7 +320,15 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
 
     //tui_buffer_draw(buffer, tm->image_select.render.rc, 0, &tm->image_select.render.bg, 0, SO);
 
-    so_free(&tmp);
+#if 0
+    Tui_Rect rc_stats = {0};
+    rc_stats.anc.y = tm->dimensions.y - 3;
+    rc_stats.anc.x = tm->dimensions.x - 10;
+    rc_stats.dim.y = 3;
+    rc_stats.dim.x = 10;
+    so_fmt(&tmp, "I:%zu\nU:%zu\nR:%zu", tm->n_input, tm->n_update, tm->n_render);
+    tui_buffer_draw(buffer, rc_stats, 0, 0, 0, tmp);
+#endif
 
 }
 

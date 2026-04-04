@@ -96,8 +96,8 @@ defer:
         ++qd->ctm->events.thumb_loaded;
         pthread_mutex_unlock(&qd->ctm->events.mtx);
         /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
-        //tui_sync_main_update(&qd->ctm->tui_sync.main);
-        tui_sync_main_both(&qd->ctm->tui_sync.main);
+        tui_sync_main_update(&qd->ctm->tui_sync.main);
+        //tui_sync_main_both(&qd->ctm->tui_sync.main);
     } else {
         ctm_loader_set_fallback(load, rand(), rand(), rand());
     }
@@ -110,8 +110,8 @@ void *ctm_loader_when_all_done(Pw *pw, bool *cancel, void *user) {
     Ctm_Loader_Image *loader = user;
     
     /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
-    //tui_sync_main_update(&loader->ctm->tui_sync.main);
-    tui_sync_main_both(&loader->ctm->tui_sync.main);
+    tui_sync_main_update(&loader->ctm->tui_sync.main);
+    //tui_sync_main_both(&loader->ctm->tui_sync.main);
     pw_when_done_clear(pw);
     return 0;
 }

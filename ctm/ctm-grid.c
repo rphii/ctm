@@ -19,12 +19,13 @@ void ctm_grid_all_dirty(Ctm_Grid *grid) {
             Ctm_Image *image = *jt;
             if(!image) continue;
             image->render.is_clean = false;
-            ctm_image_unfloat(image);
+            (void) ctm_image_unfloat(image);
         }
     }
 }
 
-void ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) {
+bool ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) {
+    bool render = false;
     Ctm_Row **itE = array_itE(grid->rows);
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
         Ctm_Row *row = *it;
@@ -34,15 +35,18 @@ void ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) 
             if(!image) continue;
             if(tui_rect_cmp(image->render.rc_image, image->render.rc_image_prev)) {
                 image->render.is_clean = false;
+                render |= true;
             }
-            if(unfloat_all) {
-                ctm_image_unfloat(image);
-            }
-            if(unselect_all) {
-                ctm_image_unselect(image);
+            if(unfloat_all && unselect_all) {
+                render |= ctm_image_unboth(image);
+            } else if(unfloat_all) {
+                render |= ctm_image_unfloat(image);
+            } else if(unselect_all) {
+                render |= ctm_image_unselect(image);
             }
         }
     }
+    return render;
 }
 
 size_t ctm_grid_row_index(Ctm_Grid *grid, Ctm_Row *row) {
@@ -139,6 +143,7 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
 
     if(row_new_changed) {
         row_new = row_new_changed;
+        cols_real = array_len(row_new->images);
         if(y_move < 0) {
 
             size_t n_rows = ctm_row_get_rows(config, row_new, row_new->render.rc_bg.dim.x);
@@ -151,6 +156,7 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
 
                 size_t result = x > n_cols_last ? n_cols_last : x;
                 result += n_cols * (n_rows - 1);
+                if(result >= cols_real) result = cols_real - 1;
 
                 *col_i = result;
                 *row_change = row_new;
@@ -160,7 +166,6 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
         } else if(y_move > 0) {
             y = 0;
         }
-        cols_real = array_len(row_new->images);
     }
 
     ssize_t i_col = x + y * cols;

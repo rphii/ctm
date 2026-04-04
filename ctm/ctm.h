@@ -39,11 +39,16 @@ typedef struct Ctm_Image_Select {
 
 typedef struct Ctm {
 
+    size_t n_input;
+    size_t n_render;
+    size_t n_update;
+
     bool                arg_quit_early;
     struct Arg_Config  *arg_config;
     struct Arg         *arg;
 
     Ctm_Config          config;
+    Ctm_Config          config_fb;
     VSo                 image_paths;
 
     bool                tui_defer;
@@ -61,6 +66,7 @@ typedef struct Ctm {
     Ctm_Grid            grid;
 
     Tui_Point           dimensions;
+    So                  render_tmp;
 
 } Ctm;
 

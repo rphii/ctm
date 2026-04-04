@@ -55,9 +55,9 @@ VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, ERR);
 VEC_INCLUDE(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, SORT);
 
 void v_ctm_image_init_from_paths(V_Ctm_Image *v, VSo paths);
-void ctm_image_unselect(Ctm_Image *image);
-void ctm_image_unfloat(Ctm_Image *image);
-void ctm_image_unboth(Ctm_Image *image);
+ATTR_NODISCARD bool ctm_image_unselect(Ctm_Image *image);
+ATTR_NODISCARD bool ctm_image_unfloat(Ctm_Image *image);
+ATTR_NODISCARD bool ctm_image_unboth(Ctm_Image *image);
 size_t ctm_image_get_grid_y(Ctm_Config *config, struct Ctm_Grid *grid, Ctm_Image *image);
 Ctm_Image *ctm_image_find_first_best(Ctm_Config *config, struct Ctm_Grid *grid, struct Ctm_Row *row0, Ctm_Image *fallback, int direction);
 

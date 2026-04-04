@@ -58,30 +58,46 @@ void v_ctm_image_init_from_paths(V_Ctm_Image *v, VSo paths) {
     }
 }
 
-void ctm_image_unselect(Ctm_Image *image) {
+bool ctm_image_unselect(Ctm_Image *image) {
+    bool changed = !image->render.is_clean
+        || image->render.is_selected;
+
     image->render.is_clean &= !image->render.is_selected; /* mark as not clean if was selected */
     image->render.is_selected = false;
     if(ctm_image_is_valid(image)) {
+        changed |= image->tui_image->z;
         image->tui_image->z = 0;
     }
+    return changed;
 }
 
-void ctm_image_unfloat(Ctm_Image *image) {
+bool ctm_image_unfloat(Ctm_Image *image) {
+    bool changed = !image->render.is_clean
+        || image->render.is_floating;
+
     image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
     image->render.is_floating = false;
     if(ctm_image_is_valid(image)) {
+        changed |= image->tui_image->z;
         image->tui_image->z = 0;
     }
+    return changed;
 }
 
-void ctm_image_unboth(Ctm_Image *image) {
-    if(!image) return;
+bool ctm_image_unboth(Ctm_Image *image) {
+    bool changed = !image->render.is_clean
+        || image->render.is_floating
+        || image->render.is_selected;
+
+    if(!image) return false;
     image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
     image->render.is_floating = false;
     image->render.is_selected = false;
     if(ctm_image_is_valid(image)) {
+        changed |= image->tui_image->z;
         image->tui_image->z = 0;
     }
+    return changed;
 }
 
 size_t ctm_image_get_grid_y(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image) {
