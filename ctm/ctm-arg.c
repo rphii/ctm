@@ -4,9 +4,9 @@ int ctm_arg_parse_category(So so, Color *color, So *name, struct Argx *argx) {
 
     So rhs, lhs = so_split_ch(so, ':', &rhs);
     rhs = so_trim(rhs);
-    printff(" SPLIT [%.*s]",SO_F(so));
 
-    if(so_cmp(lhs, so("auto")) && so_as_color(lhs, color)) {
+    *color = (Color){ .r = rand(), .g = rand(), .b = rand() };
+    if(so_cmp(lhs, so("random")) && so_as_color(lhs, color)) {
         arg_runtime_set_parse_error_message(argx, "Invalid color : %.*s", SO_F(lhs));
         return -1;
     }
@@ -15,6 +15,7 @@ int ctm_arg_parse_category(So so, Color *color, So *name, struct Argx *argx) {
         return -1;
     }
 
+
     //printff(" RHS IS: [%.*s]",SO_F(rhs));
     *name = rhs;
     return 0;
@@ -22,8 +23,13 @@ int ctm_arg_parse_category(So so, Color *color, So *name, struct Argx *argx) {
 
 int ctm_argx_category(struct Argx *argx, void *user, So so) {
 
+    //printff(" CAT : [%.*s]",SO_F(so));
+
+    Color color = {0};
     So name = SO;
-    Color color = { .r = rand(), .g = rand(), .b = rand() };
+    Ctm *tm = user;
+    //custom_categories
+
     int err = ctm_arg_parse_category(so, &color, &name, argx);
 
     return err;
@@ -36,28 +42,38 @@ void ctm_arg(Ctm *ctm) {
     struct Argx_Group *g;
 
     argx_builtin_env_compgen(arg);
-    argx_builtin_rice(arg);
     arg_enable_config_print(arg, true);
 
     /* positionals */
     x=argx_pos(arg, so("images"), so("input images"));
       argx_type_rest(x, &ctm->image_paths);
 
-    g=argx_group(arg, so("options"));
+    /* builtin stuff */
+    g=argx_group(arg, so("core"));
+      argx_builtin_opt_help(g, ARGX_BUILTIN_OPT_HELP);
+#ifdef CTM_VERSION
+      argx_builtin_opt_version(g, ARGX_BUILTIN_OPT_VERSION, so(CTM_VERSION));
+#endif
+      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("/etc/ctm/ctm.conf"));
+      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$HOME/.config/rphiic/colors.conf"));
+      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$HOME/.config/ctm/ctm.conf"));
+      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$XDG_CONFIG_HOME/ctm/ctm.conf"));
 
+    /* stuff regarding the tier list layout */
+    g=argx_group(arg, so("layout"));
 
     vso_push(&ctm->config.categories_template, so("rgb(ff7f7f):S"));
     vso_push(&ctm->config.categories_template, so("rgb(ffbf7e):A"));
     vso_push(&ctm->config.categories_template, so("rgb(ffdf7e):B"));
     vso_push(&ctm->config.categories_template, so("rgb(ffff80):C"));
     vso_push(&ctm->config.categories_template, so("rgb(cfcfcf):F"));
-
     x=argx_opt(g, 'c', so("category"), so("specify your own categories\n"
                 "* color can be 'random' or a value in the format rgb(RRGGBB)\n"
                 "* name can be any string you want for your category\n"
                 "* e.g. --color='rgb(ffeeaa):My Category'"));
       argx_type_array_so(x, &ctm->config.categories_use, &ctm->config.categories_template);
       argx_hint_text(x, so("color,name"));
+      argx_attr_fatal_config_error(x, true);
       argx_callback(x, ctm_argx_category, ctm, ARGX_PRIORITY_IMMEDIATELY);
 
     x=argx_opt(g, 'W', so("title-width"), so("set title width"));
@@ -93,15 +109,7 @@ void ctm_arg(Ctm *ctm) {
     //Color bg_odd;
     //Color fg_ul;
 
-    /* builtin stuff */
-      argx_builtin_opt_help(g, ARGX_BUILTIN_OPT_HELP);
-#ifdef CTM_VERSION
-      argx_builtin_opt_version(g, ARGX_BUILTIN_OPT_VERSION, so(CTM_VERSION));
-#endif
-      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("/etc/ctm/ctm.conf"));
-      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$HOME/.config/rphiic/colors.conf"));
-      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$HOME/.config/ctm/ctm.conf"));
-      argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$XDG_CONFIG_HOME/ctm/ctm.conf"));
+    argx_builtin_rice(arg);
 
 }
 

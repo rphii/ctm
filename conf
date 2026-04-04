@@ -1,25 +1,22 @@
-[options]
+[layout]
 category = [
-  "random,S",
-  "random,A",
-  "random,B",
-  "random,C",
-  "random,F"
+  "rgb(ff7f7f):S",
+  "rgb(ffbf7e):A",
+  "rgb(ffdf7e):B",
+  "rgb(ffff80):C",
+  "rgb(cfcfcf):F"
 ] # <color,name>
 title-width = 10 # <size>
-cell-width = 10 # <size>
-cell-height = 5 # <size>
-cell-width-grab = 14 # <size>
-cell-height-grab = 7 # <size>
+cell-width = 12 # <size>
+cell-height = 6 # <size>
+cell-width-grab = 20 # <size>
+cell-height-grab = 10 # <size>
+grab-bg = rgb(7f0000) # <color>
 fg-ul = rgb(111111) # <color>
 bg-even = rgb(060606) # <color>
 bg-odd = rgb(000000) # <color>
 scroll-mult = 4 # <size>
 scroll-invert = false # <bool>
 thumb = 128 # <size>
-source = [
-  "/etc/ctm/ctm.conf",
-  "$HOME/.config/rphiic/colors.conf",
-  "$HOME/.config/ctm/ctm.conf",
-  "$XDG_CONFIG_HOME/ctm/ctm.conf"
-] # <uri-array>
+random = false # <bool>
+

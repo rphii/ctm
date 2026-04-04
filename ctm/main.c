@@ -338,6 +338,7 @@ int main(int argc, const char **argv) {
     tm.arg_config = arg_config_new(),
     arg_config_set_program(tm.arg_config, so_l(argv[0]));
     arg_config_set_description(tm.arg_config, so("C Tier Maker (create tierlists in your terminal)"));
+    arg_config_set_width(tm.arg_config, 100);
 
     /* set up argument parser */
     tm.arg = arg_new(tm.arg_config);
