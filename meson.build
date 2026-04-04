@@ -23,3 +23,5 @@ ctm = executable('ctm',
   install: true,
   )
 
+install_data('bash/ctm', install_dir: get_option('completion_dir'))
+

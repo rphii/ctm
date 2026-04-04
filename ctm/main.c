@@ -313,7 +313,10 @@ size_t ctm_row_image_index_from_pos(Ctm_Config *config, Ctm_Row *row, Tui_Point 
     Tui_Point pt = tui_rect_project_point(row->render.rc_images, pos);
     if(!pt.x) return len;
     size_t w_cell = config->dim_cell.x;
-    size_t i = pt.x / w_cell;
+    size_t h_cell = config->dim_cell.y;
+    size_t j = pt.y / h_cell;
+    size_t n = ctm_row_get_cols(config, row, row->render.rc_bg.dim.x);
+    size_t i = pt.x / w_cell + j * n;
     if(i < len) result = i;
     return result;
 }
@@ -410,11 +413,17 @@ bool ctm_update(void *user) {
         tm->image_select.select.is_kbd = true;
     }
 
+    tm->grid.render.rc_grid.dim = tm->dimensions;
     if(tm->input.mouse.scroll) {
         ssize_t scroll = tm->config.scroll_invert ? tm->input.mouse.scroll : -tm->input.mouse.scroll;
         scroll *= tm->config.scroll_mult;
         tm->grid.render.rc_grid.anc.y += scroll;
-        tm->grid.render.rc_grid.dim = tm->dimensions;
+        if(tm->grid.render.rc_grid.anc.y > 0) {
+            tm->grid.render.rc_grid.anc.y = 0;
+        }
+        if(tm->grid.render.rc_grid.dim.y + tm->grid.render.rc_grid.anc.y < 0) {
+            tm->grid.render.rc_grid.anc.y = -tm->grid.render.rc_grid.dim.y;
+        }
     }
 
     if(tm->input.mouse.m.press) {
