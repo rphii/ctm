@@ -109,11 +109,6 @@ bool ctm_update(void *user) {
         if(selected) {
             tm->image_select.select.image = selected;
 
-            // TODO : needs to check if is_valid ++selected->tui_image->z;
-            //if(ctm_image_is_valid(selected)) {
-                //selected->tui_image->z = 1000;
-            //}
-
             Tui_Point dg = {
                 .x = (tm->config.dim_cell_grab.x - tm->config.dim_cell.x) / 2,
                 .y = (tm->config.dim_cell_grab.y - tm->config.dim_cell.y) / 2,
