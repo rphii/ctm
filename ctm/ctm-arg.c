@@ -72,9 +72,9 @@ void ctm_arg(Ctm *ctm) {
     x=argx_opt(g, 'y', so("cell-height"), so("set single cell height"));
       argx_type_size(x, &ctm->config.dim_cell.y, &(ssize_t){ 6 });
     x=argx_opt(g, 'G', so("cell-width-grab"), so("set single cell height - grab"));
-      argx_type_size(x, &ctm->config.dim_cell_grab.x, &(ssize_t){ 8 });
+      argx_type_size(x, &ctm->config.dim_cell_grab.x, &(ssize_t){ 20 });
     x=argx_opt(g, 'g', so("cell-height-grab"), so("set single cell height - grab"));
-      argx_type_size(x, &ctm->config.dim_cell_grab.y, &(ssize_t){ 4 });
+      argx_type_size(x, &ctm->config.dim_cell_grab.y, &(ssize_t){ 10 });
     x=argx_opt(g, 'X', so("grab-bg"), so("set grab background color"));
       argx_type_color(x, &ctm->config.bg_grab, &(Color){ .r = 0x7f, .g = 0x0, .b = 0x0 });
     x=argx_opt(g, 'u', so("fg-ul"), so("set underline (foreground) color"));

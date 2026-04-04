@@ -4,6 +4,7 @@
 #include "ctm-config.h"
 
 struct Ctm_Row;
+struct Ctm;
 
 typedef struct Ctm_Row {
     So name;

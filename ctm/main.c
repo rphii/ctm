@@ -151,9 +151,14 @@ bool ctm_update(void *user) {
                 Ctm_Row **itE = array_itE(tm->grid.rows);
                 for(Ctm_Row **it = tm->grid.rows; it < itE; ++it) {
                     Ctm_Row *row = *it;
-                    if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
+                    Tui_Point ct = (Tui_Point){
+                        .x = (selected->render.rc_image.dim.x / 2) + selected->render.rc_image.anc.x,
+                        .y = (selected->render.rc_image.dim.y / 2) + selected->render.rc_image.anc.y,
+                    };
+
+                    if(tui_rect_encloses_point(row->render.rc_row, ct)) {
                         /* insert into certain position */
-                        size_t i = ctm_row_image_index_from_pos(&tm->config, row, tm->input.mouse.pos);
+                        size_t i = ctm_row_image_index_from_pos(&tm->config, row, ct);
                         ctm_row_image_set(tm, row, selected, i);
                     }
                 }
@@ -211,7 +216,7 @@ bool ctm_update(void *user) {
 
                 if(row_new != image->row_owner) {
                     image->changed_x_index_manually = false;
-                } else if(tm->input.move_x) {
+                } else {
                     image->changed_x_index_manually = true;
                 }
 
@@ -293,7 +298,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                     image->render.is_clean = true;
                     image->tui_image->dst = image->render.rc_image;
                     image->tui_image->src.dim = image->tui_image->dimensions;
-                    image->tui_image->z = image->render.is_floating;
+                    image->tui_image->z = (image->render.is_floating || image->render.is_selected);
 
                     tui_image_render(tm->tui_core, image->tui_image, image->tui_image->id, 0);
                 }
