@@ -6,6 +6,8 @@ sources = [
   'ctm/ctm-arg.c',
   'ctm/ctm-image.c',
   'ctm/ctm-loader-image.c',
+  'ctm/ctm-row.c',
+  'ctm/ctm-grid.c',
   ]
 
 cc = meson.get_compiler('c')

@@ -11,34 +11,9 @@
 #include "ctm-loader-image.h"
 #include "ctm-event.h"
 #include "ctm-image.h"
+#include "ctm-config.h"
+#include "ctm-grid.h"
 
-
-typedef struct Ctm_Row {
-    So name;
-    Tui_Fx fx;
-    Tui_Color fg;
-    Tui_Color bg;
-    Ctm_Image **images;
-
-    struct {
-        Tui_Rect rc_row; /* the full width, from left -> right */
-        Tui_Rect rc_name;
-        Tui_Rect rc_images; /* only up to and including items */
-        Tui_Rect rc_bg; /* width from name -> right */
-        Tui_Rect rc_ul; /* "" */
-        Tui_Color bg_bg;
-        Tui_Color fg_ul;
-    } render;
-
-} Ctm_Row, **Ctm_Rows;
-
-typedef struct Ctm_Grid {
-    Ctm_Rows rows;
-
-    struct {
-        Tui_Rect rc_grid;
-    } render;
-} Ctm_Grid;
 
 typedef struct Ctm_Input {
     int move_x;
@@ -61,26 +36,6 @@ typedef struct Ctm_Image_Select {
     } select;
 
 } Ctm_Image_Select;
-
-typedef struct Ctm_Config {
-    bool is_graphics_supported;
-    Tui_Point dim_cell;
-    Tui_Point dim_cell_grab;
-    ssize_t w_title;
-    VSo categories_use;
-    VSo categories_template;
-    ssize_t scroll_mult;
-    bool scroll_invert;
-    bool random_placement;
-
-    ssize_t thumb;
-    So argp_dim_cell;
-    So argp_dim_cell_grab;
-    Color bg_grab;
-    Color bg_even;
-    Color bg_odd;
-    Color fg_ul;
-} Ctm_Config;
 
 typedef struct Ctm {
 
