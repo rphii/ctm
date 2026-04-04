@@ -1,0 +1,23 @@
+[options]
+category = [
+  "rgb(ff0000),S",
+  "rgb(f00000),A",
+  "rgb(ef0000),B",
+  "rgb(e00000),C",
+  "rgb(d00000),F"
+] # <color,name>
+title-width = 5 # <size>
+cell-width = 10 # <size>
+cell-height = 5 # <size>
+cell-width-grab = 14 # <size>
+cell-height-grab = 7 # <size>
+fg-ul = rgb(ff0000) # <color>
+bg-even = rgb(1f0000) # <color>
+bg-odd = rgb(000000) # <color>
+source = [
+  "/etc/ctm/ctm.conf",
+  "$HOME/.config/rphiic/colors.conf",
+  "$HOME/.config/ctm/ctm.conf",
+  "$XDG_CONFIG_HOME/ctm/ctm.conf"
+] # <uri-array>
+

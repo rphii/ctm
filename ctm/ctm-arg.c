@@ -1,5 +1,38 @@
 #include "ctm-arg.h"
 
+int ctm_arg_parse_category(So so, Color *color, So *name) {
+
+    So rhs, lhs = so_split_ch(so, ',', &rhs);
+    rhs = so_trim(rhs);
+
+    if(so_cmp(lhs, so("auto")) && so_as_color(lhs, color)) {
+        return 1;
+    }
+    if(!so_len(rhs)) {
+        return 2;
+    }
+    *name = rhs;
+    return 0;
+}
+
+int ctm_argx_category(struct Argx *argx, void *user, So so) {
+
+    So name = SO;
+    Color color = {0};
+    int err = ctm_arg_parse_category(so, &color, &name);
+
+    if(err == 2) {
+        arg_runtime_set_parse_error_message(argx, so("Invalid color"));
+    }
+    if(err == 1) {
+        arg_runtime_set_parse_error_message(argx, so("No name specified"));
+    }
+
+    err = 0;
+defer:
+    return err;
+}
+
 void ctm_arg(Ctm *ctm) {
 
     struct Arg *arg = ctm->arg;
@@ -8,13 +41,53 @@ void ctm_arg(Ctm *ctm) {
 
     argx_builtin_env_compgen(arg);
     argx_builtin_rice(arg);
+    arg_enable_config_print(arg, true);
 
     /* positionals */
     x=argx_pos(arg, so("images"), so("input images"));
       argx_type_rest(x, &ctm->image_paths);
 
-    /* builtin stuff */
     g=argx_group(arg, so("options"));
+
+
+    vso_push(&ctm->config.categories_template, so("rgb(ff7f7f),S"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffbf7e),A"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffdf7e),B"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffff80),C"));
+    vso_push(&ctm->config.categories_template, so("rgb(cfcfcf),F"));
+
+    x=argx_opt(g, 'c', so("category"), so("specify your own categories\n"
+                "* color can be 'random' or a value in the format rgb(RRGGBB)\n"
+                "* name can be any string you want for your category\n"
+                "* e.g. --color='rgb(ffeeaa),My Category'"));
+      argx_type_array_so(x, &ctm->config.categories_use, &ctm->config.categories_template);
+      argx_hint_text(x, so("color,name"));
+      argx_callback(x, ctm_argx_category, ctm, ARGX_PRIORITY_IMMEDIATELY);
+
+    x=argx_opt(g, 'W', so("title-width"), so("set title width"));
+      argx_type_size(x, &ctm->config.w_title, &(ssize_t){ 10 });
+
+    x=argx_opt(g, 'x', so("cell-width"), so("set single cell width"));
+      argx_type_size(x, &ctm->config.dim_cell.x, &(ssize_t){ 10 });
+    x=argx_opt(g, 'y', so("cell-height"), so("set single cell height"));
+      argx_type_size(x, &ctm->config.dim_cell.y, &(ssize_t){ 5 });
+    x=argx_opt(g, 'G', so("cell-width-grab"), so("set single cell height - grab"));
+      argx_type_size(x, &ctm->config.dim_cell_grab.x, &(ssize_t){ 14 });
+    x=argx_opt(g, 'g', so("cell-height-grab"), so("set single cell height - grab"));
+      argx_type_size(x, &ctm->config.dim_cell_grab.y, &(ssize_t){ 7 });
+    x=argx_opt(g, 'u', so("fg-ul"), so("set underline (foreground) color"));
+      argx_type_color(x, &ctm->config.fg_ul, &(Color){ .r = 0x11, .g = 0x11, .b = 0x11 });
+    x=argx_opt(g, 'e', so("bg-even"), so("set background color of even rows"));
+      argx_type_color(x, &ctm->config.bg_even, &(Color){ .r = 0x6, .g = 0x6, .b = 0x6 });
+    x=argx_opt(g, 'o', so("bg-odd"), so("set background color of odd rows"));
+      argx_type_color(x, &ctm->config.bg_odd, &(Color){ .r = 0x0, .g = 0x0, .b = 0x0 });
+
+
+    //Color bg_even;
+    //Color bg_odd;
+    //Color fg_ul;
+
+    /* builtin stuff */
       argx_builtin_opt_help(g, ARGX_BUILTIN_OPT_HELP);
 #ifdef CTM_VERSION
       argx_builtin_opt_version(g, ARGX_BUILTIN_OPT_VERSION, so(CTM_VERSION));

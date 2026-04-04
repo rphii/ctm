@@ -60,11 +60,6 @@ typedef struct Ctm_Image_Select {
         bool is_kbd;
     } select;
 
-    struct {
-        Tui_Rect rc;
-        Tui_Color bg;
-    } render;
-
 } Ctm_Image_Select;
 
 typedef struct Ctm_Config {
@@ -72,6 +67,14 @@ typedef struct Ctm_Config {
     Tui_Point dim_cell;
     Tui_Point dim_cell_grab;
     ssize_t w_title;
+    VSo categories_use;
+    VSo categories_template;
+
+    So argp_dim_cell;
+    So argp_dim_cell_grab;
+    Color bg_even;
+    Color bg_odd;
+    Color fg_ul;
 } Ctm_Config;
 
 typedef struct Ctm {

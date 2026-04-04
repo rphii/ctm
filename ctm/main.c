@@ -278,7 +278,6 @@ void ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) 
 }
 
 void ctm_image_select_update(Ctm_Grid *grid, Ctm_Image_Select *select) {
-    select->render.rc = (Tui_Rect){0};
     if(!select->select.image) {
     } else {
         Ctm_Image *image = select->select.image;
@@ -686,58 +685,38 @@ int main(int argc, const char **argv) {
 
     v_ctm_image_init_from_paths(&tm.v_images, tm.image_paths);
 
-    Ctm_Row *row;
-    NEW(Ctm_Row, row);
-    row->name = so("S");
-    row->bg = (Tui_Color){ .r = 0xFF, .g = 0x00, .b = 0x00, .type = TUI_COLOR_RGB };
-    row->render.bg_bg = (Tui_Color){ .r = 0x4, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
-    row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
-    array_push(tm.grid.rows, row);
-    NEW(Ctm_Row, row);
-    row->name = so("A");
-    row->bg = (Tui_Color){ .r = 0x80, .g = 0x00, .b = 0x00, .type = TUI_COLOR_RGB };
-    //row->render.bg_bg = (Tui_Color){ .r = 0x4, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
-    row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
-    array_push(tm.grid.rows, row);
-    NEW(Ctm_Row, row);
-    row->name = so("B");
-    row->bg = (Tui_Color){ .r = 0x6F, .g = 0x20, .b = 0x00, .type = TUI_COLOR_RGB };
-    row->render.bg_bg = (Tui_Color){ .r = 0x4, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
-    row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
-    array_push(tm.grid.rows, row);
-    NEW(Ctm_Row, row);
-    row->name = so("C");
-    row->bg = (Tui_Color){ .r = 0x20, .g = 0x60, .b = 0x00, .type = TUI_COLOR_RGB };
-    //row->render.bg_bg = (Tui_Color){ .r = 0x4, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
-    row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
-    array_push(tm.grid.rows, row);
-    NEW(Ctm_Row, row);
-    row->name = so("D");
-    row->bg = (Tui_Color){ .r = 0x00, .g = 0x80, .b = 0x00, .type = TUI_COLOR_RGB };
-    row->render.bg_bg = (Tui_Color){ .r = 0x4, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
-    row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
-    array_push(tm.grid.rows, row);
-    NEW(Ctm_Row, row);
-    row->name = so("E");
-    row->bg = (Tui_Color){ .r = 0x00, .g = 0xFF, .b = 0x00, .type = TUI_COLOR_RGB };
-    //row->render.bg_bg = (Tui_Color){ .r = 0x55, .g = 0x4, .b = 0x4, .type = TUI_COLOR_RGB };
-    row->render.fg_ul = (Tui_Color){ .r = 0x11, .g = 0x11, .b = 0x11, .type = TUI_COLOR_RGB };
+    Ctm_Row *row_last = 0;
+
+    size_t cati = 0;
+    So *catE = array_itE(tm.config.categories_use);
+    for(So *cat = tm.config.categories_use; cat < catE; ++cat, ++cati) {
+        Color color = {0};
+        Ctm_Row *row;
+        NEW(Ctm_Row, row);
+        row_last = row;
+        ctm_arg_parse_category(*cat, &color, &row->name);
+        row->bg = (Tui_Color){ .r = color.r, .g = color.g, .b = color.b, .type = TUI_COLOR_RGB };
+        color.a = 0xff;
+        uint8_t brightness = color_as_brightness(color, COLOR_GAMMA_DEFAULT);
+        if(brightness) {
+            row->fg = (Tui_Color){ .r = 0x00, 0x00, 0x00, TUI_COLOR_RGB };
+        } else {
+            row->fg = (Tui_Color){ .r = 0xff, 0xff, 0xff, TUI_COLOR_RGB };
+        }
+        row->render.fg_ul = (Tui_Color){ .r = tm.config.fg_ul.r, .g = tm.config.fg_ul.g, .b = tm.config.fg_ul.b, .type = TUI_COLOR_RGB };
+        if(cati % 2) {
+            row->render.bg_bg = (Tui_Color){ .r = tm.config.bg_odd.r, .g = tm.config.bg_odd.g, .b = tm.config.bg_odd.b, .type = TUI_COLOR_RGB };
+        } else {
+            row->render.bg_bg = (Tui_Color){ .r = tm.config.bg_even.r, .g = tm.config.bg_even.g, .b = tm.config.bg_even.b, .type = TUI_COLOR_RGB };
+        }
+        array_push(tm.grid.rows, row);
+    }
 
     for(size_t i = 0; i < v_ctm_image_length(tm.v_images); ++i) {
         Ctm_Image *image = v_ctm_image_get_at(&tm.v_images, i);
-        image->row_owner = row;
-        array_push(row->images, image);
+        image->row_owner = row_last;
+        array_push(row_last->images, image);
     }
-
-    array_push(tm.grid.rows, row);
-
-    tm.config.dim_cell.y = 5;
-    tm.config.dim_cell.x = 10;
-    tm.config.dim_cell_grab.y = 7;
-    tm.config.dim_cell_grab.x = 14;
-    tm.config.w_title = 10;
-
-    tm.image_select.render.bg = (Tui_Color){ .r = 0x22, .g = 0x44, .b = 0x25, .type = TUI_COLOR_RGB };
 
     ctm_loader_image_init(&tm.loader_image, &tm, number_of_processors);
 
