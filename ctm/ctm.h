@@ -72,6 +72,7 @@ typedef struct Ctm_Config {
     ssize_t scroll_mult;
     bool scroll_invert;
 
+    ssize_t thumb;
     So argp_dim_cell;
     So argp_dim_cell_grab;
     Color bg_even;

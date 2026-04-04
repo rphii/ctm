@@ -85,7 +85,7 @@ void ctm_row_image_update(Tui_Rect rc_box, Ctm_Config *config, Ctm_Row *row, siz
         }
 #endif
         rc.anc.x += config->dim_cell.x;
-        if(rc.anc.x + rc.dim.x >= rc_box.dim.x) {
+        if(rc.anc.x + rc.dim.x > rc_box.dim.x) {
             rc.anc.x = x0;
             rc.anc.y += config->dim_cell.y;
         }

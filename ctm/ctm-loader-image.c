@@ -14,8 +14,8 @@ typedef struct Ctm_Queue_Do {
 
 void ctm_loader_image_init(Ctm_Loader_Image *loader, struct Ctm *ctm, size_t n_jobs) {
     loader->ctm = ctm;
-    loader->config.thumb_h = 128;
-    loader->config.thumb_w = 128;
+    loader->config.thumb_h = loader->ctm->config.thumb;
+    loader->config.thumb_w = loader->ctm->config.thumb;
     pw_init(&loader->pw, n_jobs ? n_jobs : 1);
     pw_dispatch(&loader->pw);
 

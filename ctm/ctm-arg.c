@@ -85,6 +85,8 @@ void ctm_arg(Ctm *ctm) {
       argx_type_size(x, &ctm->config.scroll_mult, &(ssize_t){ 4 });
     x=argx_opt(g, 'S', so("scroll-invert"), so("set background color of odd rows"));
       argx_type_bool(x, &ctm->config.scroll_invert, &(bool){ false });
+    x=argx_opt(g, 't', so("thumb"), so("set thumbnail size ( N*N )"));
+      argx_type_size(x, &ctm->config.thumb, &(ssize_t){ 128 });
 
 
     //Color bg_even;
