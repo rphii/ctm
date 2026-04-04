@@ -55,7 +55,7 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
     return update;
 }
 
-void ctm_row_image_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row, size_t y0, size_t x0) {
+void ctm_row_image_update(Tui_Rect rc_box, Ctm_Config *config, Ctm_Row *row, size_t y0, size_t x0) {
     Tui_Rect rc = {0};
     rc.anc = (Tui_Point){ .x = x0, .y = y0 };
     rc.dim = config->dim_cell;
@@ -85,7 +85,7 @@ void ctm_row_image_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row
         }
 #endif
         rc.anc.x += config->dim_cell.x;
-        if(rc.anc.x + rc.dim.x >= dimensions.x) {
+        if(rc.anc.x + rc.dim.x >= rc_box.dim.x) {
             rc.anc.x = x0;
             rc.anc.y += config->dim_cell.y;
         }
@@ -128,22 +128,22 @@ size_t ctm_row_get_rows(Ctm_Config *config, Ctm_Row *row, ssize_t rc_grid_dim_x)
 #endif
 }
 
-void ctm_row_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row, size_t y0) {
+void ctm_row_update(Tui_Rect rc_box, Ctm_Config *config, Ctm_Row *row, size_t y0) {
 
     Tui_Rect rc = {0};
     
     /* figure out content rc */
     rc.anc.x = config->w_title;
     rc.anc.y = y0;
-    size_t n_w = ctm_row_get_cols(config, row, dimensions.x - config->w_title);
-    size_t n_h = ctm_row_get_rows(config, row, dimensions.x - config->w_title);
+    size_t n_w = ctm_row_get_cols(config, row, rc_box.dim.x - config->w_title);
+    size_t n_h = ctm_row_get_rows(config, row, rc_box.dim.x - config->w_title);
     rc.dim.y = n_h * config->dim_cell.y;
     rc.dim.x = n_w * config->dim_cell.x;
     row->render.rc_images = rc;
 
     /* figure out backround rcs */
     row->render.rc_bg = row->render.rc_images;
-    row->render.rc_bg.dim.x = dimensions.x - config->w_title;
+    row->render.rc_bg.dim.x = rc_box.dim.x - config->w_title;
 
     row->render.rc_ul = row->render.rc_bg;
     row->render.rc_ul.anc.y += row->render.rc_ul.dim.y - 1;
@@ -158,18 +158,17 @@ void ctm_row_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Row *row, size
 
     /* full width */
     row->render.rc_row.anc = row->render.rc_name.anc;
-    row->render.rc_row.dim.x = dimensions.x;
+    row->render.rc_row.dim.x = rc_box.dim.x;
     row->render.rc_row.dim.y = row->render.rc_name.dim.y;
 
-    ctm_row_image_update(dimensions, config, row, y0, row->render.rc_images.anc.x);
+    ctm_row_image_update(rc_box, config, row, y0, row->render.rc_images.anc.x);
 }
 
-void ctm_grid_update(Tui_Point dimensions, Ctm_Config *config, Ctm_Grid *grid) {
-    size_t y0 = 0;
+void ctm_grid_update(Tui_Rect rc_grid, Ctm_Config *config, Ctm_Grid *grid) {
+    size_t y0 = rc_grid.anc.y;
     Ctm_Row **itE = array_itE(grid->rows);
-    grid->render.rc_grid.dim = dimensions;
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
-        ctm_row_update(dimensions, config, *it, y0);
+        ctm_row_update(rc_grid, config, *it, y0);
         y0 += (*it)->render.rc_name.dim.y;
     }
 }
@@ -411,6 +410,13 @@ bool ctm_update(void *user) {
         tm->image_select.select.is_kbd = true;
     }
 
+    if(tm->input.mouse.scroll) {
+        ssize_t scroll = tm->config.scroll_invert ? tm->input.mouse.scroll : -tm->input.mouse.scroll;
+        scroll *= tm->config.scroll_mult;
+        tm->grid.render.rc_grid.anc.y += scroll;
+        tm->grid.render.rc_grid.dim = tm->dimensions;
+    }
+
     if(tm->input.mouse.m.press) {
         Ctm_Grid *grid = &tm->grid;
         Ctm_Image *selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
@@ -554,7 +560,8 @@ bool ctm_update(void *user) {
     //ctm_image_select_update(&tm->grid, &tm->image_select);
 #endif
 
-    ctm_grid_update(tm->dimensions, &tm->config, &tm->grid);
+    ctm_grid_update(tm->grid.render.rc_grid, &tm->config, &tm->grid);
+
     ctm_grid_update_dirty(&tm->grid, unfloat_all, unselect_all);
 
     //tm->input_mouse_prev = tm->input.mouse;

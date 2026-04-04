@@ -81,6 +81,10 @@ void ctm_arg(Ctm *ctm) {
       argx_type_color(x, &ctm->config.bg_even, &(Color){ .r = 0x6, .g = 0x6, .b = 0x6 });
     x=argx_opt(g, 'o', so("bg-odd"), so("set background color of odd rows"));
       argx_type_color(x, &ctm->config.bg_odd, &(Color){ .r = 0x0, .g = 0x0, .b = 0x0 });
+    x=argx_opt(g, 's', so("scroll-mult"), so("set background color of odd rows"));
+      argx_type_size(x, &ctm->config.scroll_mult, &(ssize_t){ 4 });
+    x=argx_opt(g, 'S', so("scroll-invert"), so("set background color of odd rows"));
+      argx_type_bool(x, &ctm->config.scroll_invert, &(bool){ false });
 
 
     //Color bg_even;

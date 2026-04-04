@@ -69,6 +69,8 @@ typedef struct Ctm_Config {
     ssize_t w_title;
     VSo categories_use;
     VSo categories_template;
+    ssize_t scroll_mult;
+    bool scroll_invert;
 
     So argp_dim_cell;
     So argp_dim_cell_grab;
