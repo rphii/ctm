@@ -162,12 +162,6 @@ bool ctm_update(void *user) {
                         ctm_row_image_set(tm, row, selected, i);
                     }
                 }
-
-                //if(ctm_image_is_valid(selected)) {
-                //    tui_image_clear_id_image(tm->tui_core, selected->tui_image->id);
-                //    tui_image_update(tm->tui_core, selected->tui_image, 0);
-                //}
-                //selected->render.is_clean = false;
             }
         }
     }
