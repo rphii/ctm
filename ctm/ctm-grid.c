@@ -73,7 +73,7 @@ Ctm_Image *ctm_grid_image_from_pos(Ctm_Grid *grid, Tui_Point pos) {
 }
 
 
-void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ssize_t change_x, ssize_t change_y, ssize_t *col_i, Ctm_Row **row_change) {
+void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ssize_t change_x, ssize_t change_y, ssize_t *col_i, Ctm_Row **row_change, bool skip_empty) {
     ssize_t cols = ctm_row_get_cols(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
     ssize_t rows = ctm_row_get_rows(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
     ssize_t cols_real = array_len(image->row_owner->images);
@@ -125,8 +125,15 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
 
     if(y_move) {
         ssize_t y_new = y_at + y_move;
-        if(y_new >= 0 && y_new < array_len(grid->rows)) {
-            row_new_changed = array_at(grid->rows, y_new);
+        if(skip_empty) {
+            Ctm_Image *image_row = ctm_image_find_first_best(config, grid, image->row_owner, 0, y_move);
+            if(image_row) {
+                row_new_changed = image_row->row_owner;
+            }
+        } else {
+            if(y_new >= 0 && y_new < array_len(grid->rows)) {
+                row_new_changed = array_at(grid->rows, y_new);
+            }
         }
     }
 
@@ -139,14 +146,16 @@ void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ss
             y = 0;
 
             size_t n_cols = ctm_row_get_cols(config, row_new, row_new->render.rc_bg.dim.x);
-            size_t n_cols_last = array_len(row_new->images) % n_cols - 1;
+            if(n_cols) {
+                size_t n_cols_last = array_len(row_new->images) % n_cols - 1;
 
-            size_t result = x > n_cols_last ? n_cols_last : x;
-            result += n_cols * (n_rows - 1);
+                size_t result = x > n_cols_last ? n_cols_last : x;
+                result += n_cols * (n_rows - 1);
 
-            *col_i = result;
-            *row_change = row_new;
-            return;
+                *col_i = result;
+                *row_change = row_new;
+                return;
+            }
 
         } else if(y_move > 0) {
             y = 0;

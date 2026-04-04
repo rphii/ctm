@@ -195,7 +195,7 @@ bool ctm_update(void *user) {
 
                 ssize_t i_col = 0;
                 Ctm_Row *row_new = 0;
-                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.select_x, tm->input.select_y, &i_col, &row_new);
+                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.select_x, tm->input.select_y, &i_col, &row_new, true);
 
                 Ctm_Image *image_old = image;
 
@@ -212,7 +212,7 @@ bool ctm_update(void *user) {
 
                 ssize_t i_col = 0;
                 Ctm_Row *row_new = 0;
-                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.move_x, tm->input.move_y, &i_col, &row_new);
+                ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.move_x, tm->input.move_y, &i_col, &row_new, false);
 
                 if(row_new != image->row_owner) {
                     image->changed_x_index_manually = false;
@@ -374,7 +374,7 @@ int main(int argc, const char **argv) {
         Ctm_Row *row;
         NEW(Ctm_Row, row);
         row_last = row;
-        ctm_arg_parse_category(*cat, &color, &row->name);
+        ctm_arg_parse_category(*cat, &color, &row->name, 0);
         row->bg = (Tui_Color){ .r = color.r, .g = color.g, .b = color.b, .type = TUI_COLOR_RGB };
         color.a = 0xff;
         uint8_t brightness = color_as_brightness(color, COLOR_GAMMA_DEFAULT);

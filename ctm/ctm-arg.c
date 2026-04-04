@@ -1,16 +1,21 @@
 #include "ctm-arg.h"
 
-int ctm_arg_parse_category(So so, Color *color, So *name) {
+int ctm_arg_parse_category(So so, Color *color, So *name, struct Argx *argx) {
 
-    So rhs, lhs = so_split_ch(so, ',', &rhs);
+    So rhs, lhs = so_split_ch(so, ':', &rhs);
     rhs = so_trim(rhs);
+    printff(" SPLIT [%.*s]",SO_F(so));
 
     if(so_cmp(lhs, so("auto")) && so_as_color(lhs, color)) {
-        return 1;
+        arg_runtime_set_parse_error_message(argx, "Invalid color : %.*s", SO_F(lhs));
+        return -1;
     }
     if(!so_len(rhs)) {
-        return 2;
+        arg_runtime_set_parse_error_message(argx, "No name specified : %.*s", SO_F(so));
+        return -1;
     }
+
+    //printff(" RHS IS: [%.*s]",SO_F(rhs));
     *name = rhs;
     return 0;
 }
@@ -19,17 +24,8 @@ int ctm_argx_category(struct Argx *argx, void *user, So so) {
 
     So name = SO;
     Color color = { .r = rand(), .g = rand(), .b = rand() };
-    int err = ctm_arg_parse_category(so, &color, &name);
+    int err = ctm_arg_parse_category(so, &color, &name, argx);
 
-    if(err == 2) {
-        arg_runtime_set_parse_error_message(argx, so("Invalid color"));
-    }
-    if(err == 1) {
-        arg_runtime_set_parse_error_message(argx, so("No name specified"));
-    }
-
-    err = 0;
-defer:
     return err;
 }
 
@@ -50,16 +46,16 @@ void ctm_arg(Ctm *ctm) {
     g=argx_group(arg, so("options"));
 
 
-    vso_push(&ctm->config.categories_template, so("rgb(ff7f7f),S"));
-    vso_push(&ctm->config.categories_template, so("rgb(ffbf7e),A"));
-    vso_push(&ctm->config.categories_template, so("rgb(ffdf7e),B"));
-    vso_push(&ctm->config.categories_template, so("rgb(ffff80),C"));
-    vso_push(&ctm->config.categories_template, so("rgb(cfcfcf),F"));
+    vso_push(&ctm->config.categories_template, so("rgb(ff7f7f):S"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffbf7e):A"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffdf7e):B"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffff80):C"));
+    vso_push(&ctm->config.categories_template, so("rgb(cfcfcf):F"));
 
     x=argx_opt(g, 'c', so("category"), so("specify your own categories\n"
                 "* color can be 'random' or a value in the format rgb(RRGGBB)\n"
                 "* name can be any string you want for your category\n"
-                "* e.g. --color='rgb(ffeeaa),My Category'"));
+                "* e.g. --color='rgb(ffeeaa):My Category'"));
       argx_type_array_so(x, &ctm->config.categories_use, &ctm->config.categories_template);
       argx_hint_text(x, so("color,name"));
       argx_callback(x, ctm_argx_category, ctm, ARGX_PRIORITY_IMMEDIATELY);
