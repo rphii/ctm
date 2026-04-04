@@ -18,7 +18,7 @@ int ctm_arg_parse_category(So so, Color *color, So *name) {
 int ctm_argx_category(struct Argx *argx, void *user, So so) {
 
     So name = SO;
-    Color color = {0};
+    Color color = { .r = rand(), .g = rand(), .b = rand() };
     int err = ctm_arg_parse_category(so, &color, &name);
 
     if(err == 2) {
