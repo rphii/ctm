@@ -75,6 +75,7 @@ typedef struct Ctm_Config {
     ssize_t thumb;
     So argp_dim_cell;
     So argp_dim_cell_grab;
+    Color bg_grab;
     Color bg_even;
     Color bg_odd;
     Color fg_ul;

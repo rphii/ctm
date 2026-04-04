@@ -24,6 +24,7 @@ typedef struct Ctm_Image {
     struct {
         Tui_Rect rc_image_prev;
         Tui_Rect rc_image;
+        Tui_Rect rc_cell;
         Tui_Color fallback_bg;
         Tui_Color fallback_fg;
         bool is_send_ok;

@@ -77,6 +77,7 @@ void ctm_row_image_update(Tui_Rect rc_box, Ctm_Config *config, Ctm_Row *row, siz
                 }
 
                 image->render.rc_image = rc2;
+                image->render.rc_cell = rc;
             }
 
 #if 0
@@ -211,10 +212,6 @@ void ctm_image_select_move_x(Ctm *tm, Ctm_Image_Select *select, ssize_t n) {
 }
 #endif
 
-bool ctm_grid_index_image(Ctm_Grid *grid, Ctm_Row *row, Ctm_Image *image, size_t *index) {
-    size_t result = 0;
-    return false;
-}
 
 void ctm_image_unselect(Ctm_Image *image) {
     image->render.is_clean &= !image->render.is_selected; /* mark as not clean if was selected */
@@ -278,19 +275,6 @@ void ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) 
     }
 }
 
-void ctm_image_select_update(Ctm_Grid *grid, Ctm_Image_Select *select) {
-    if(!select->select.image) {
-    } else {
-        Ctm_Image *image = select->select.image;
-        // select->render.rc = image->render.rc_image;
-        // image->render.rc_image.anc.x += 2;
-        // image->render.rc_image.anc.y += 1;
-        // image->render.rc_image.dim.x -= 4;
-        // image->render.rc_image.dim.y -= 2;
-    }
-    //select->render.rc.anc.y = grid->dim_cell.y * select->select.grid_index.y;
-}
-
 size_t ctm_row_image_index(Ctm_Row *row, Ctm_Image *image) {
     size_t len = array_len(row->images);
     for(size_t i = 0; i < len; ++i) {
@@ -332,11 +316,8 @@ Ctm_Image *ctm_grid_image_from_pos(Ctm_Grid *grid, Tui_Point pos) {
         for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
             Ctm_Image *image = *jt;
             if(tui_rect_encloses_point(image->render.rc_image, pos)) {
-                //if(ctm_image_is_valid(image)) {
-                    result = image;
-                    goto break2;
-                //} else {
-                //}
+                result = image;
+                goto break2;
             }
         }
         continue; break2: break;
@@ -365,6 +346,14 @@ void ctm_row_pop_image(Ctm *tm, Ctm_Image *image, bool delete) {
 
 }
 
+size_t ctm_image_get_grid_y(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image) {
+    size_t ycum = ctm_grid_row_index(grid, image->row_owner);
+    ssize_t cols = ctm_row_get_cols(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
+    ssize_t index = ctm_row_image_index(image->row_owner, image);
+    if(!index) return ycum;
+    ycum += index / cols;
+    return ycum;
+}
 
 void ctm_grid_change_xy(Ctm_Config *config, Ctm_Grid *grid, Ctm_Image *image, ssize_t change_x, ssize_t change_y, ssize_t *col_i, ssize_t *row_change) {
     ssize_t cols = ctm_row_get_cols(config, image->row_owner, image->row_owner->render.rc_bg.dim.x);
@@ -530,6 +519,7 @@ bool ctm_update(void *user) {
                 .y = (tm->config.dim_cell_grab.y - tm->config.dim_cell.y) / 2,
             };
 
+            //selected->render.rc_cell = selected->render.rc_image;
             selected->render.rc_image.dim.x = tm->config.dim_cell_grab.x;
             selected->render.rc_image.dim.y = tm->config.dim_cell_grab.y;
             selected->render.rc_image.anc.x -= dg.x;
@@ -551,9 +541,12 @@ bool ctm_update(void *user) {
             Tui_Point p0 = tm->image_select.select.float_anc;
             Tui_Point p1 = tm->image_select.select.float_origin;
             Tui_Point p2 = tm->input.mouse.pos;
+            //Tui_Point pd = (Tui_Point){ .x = selected->render.
             /* new anc = p0 + (p2 - p1) */
             selected->render.rc_image.anc.x = p0.x + (p2.x - p1.x);
             selected->render.rc_image.anc.y = p0.y + (p2.y - p1.y);
+
+            //selected->render.rc_cell.anc.x = p0.x + (p2.x - p1.x);
         }
         if(tm->input.mouse.l.release) {
             if(selected->render.is_floating) {
@@ -563,7 +556,6 @@ bool ctm_update(void *user) {
                 Ctm_Row **itE = array_itE(tm->grid.rows);
                 for(Ctm_Row **it = tm->grid.rows; it < itE; ++it) {
                     Ctm_Row *row = *it;
-                    //printff("rc %u %u %u %u",row->render.rc_grid.anc.x,row->render.rc_grid.anc.y,row->render.rc_grid.dim.x,row->render.rc_grid.dim.y);
                     if(tui_rect_encloses_point(row->render.rc_row, tm->input.mouse.pos)) {
                         /* insert into certain position */
                         size_t i = ctm_row_image_index_from_pos(&tm->config, row, tm->input.mouse.pos);
@@ -638,13 +630,18 @@ bool ctm_update(void *user) {
             if((tm->input.select_x || tm->input.select_y || tm->input.move_x || tm->input.move_y)) {
                 image->render.is_selected = true;
             }
+
+            /* make sure image is visible and not scrolled off */
+            if(tm->grid.render.rc_grid.dim.y > tm->dimensions.y) {
+                ssize_t y_real = ctm_image_get_grid_y(&tm->config, &tm->grid, image);
+                ssize_t y_image = tm->config.dim_cell.y * y_real + tm->config.dim_cell.y / 2;
+                ssize_t y_center = tm->dimensions.y / 2;
+                ssize_t yd = y_image - y_center;
+                tm->grid.render.rc_grid.anc.y = -yd;
+            }
         } 
     }
 
-    //ctm_image_select_move_x(tm, &tm->image_select, tm->input.move_x);
-    //ctm_image_select_move_y(tm, &tm->image_select, tm->input.move_y);
-
-    //ctm_image_select_update(&tm->grid, &tm->image_select);
 #endif
 
     ctm_grid_update(tm->grid.render.rc_grid, &tm->config, &tm->grid);
@@ -658,11 +655,6 @@ bool ctm_update(void *user) {
 
 void ctm_render(Tui_Buffer *buffer, void *user) {
 
-            //static size_t n_upd;
-            //printf(TUI_ESC_CODE_GOTO(0,2));
-            //printff("render %zu", ++n_upd);
-            //usleep(1e6);
-
     Ctm *tm = user;
 
     So tmp = SO;
@@ -671,6 +663,8 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         .anc = (Tui_Point){ .x = 0, .y = 0 },
         .dim = (Tui_Point){ .x = buffer->dimension.x, .y = 1 }
     };
+
+    Tui_Color bg_grab = (Tui_Color){ .r = tm->config.bg_grab.r, .g = tm->config.bg_grab.g, .b = tm->config.bg_grab.b, .type = TUI_COLOR_RGB };
 
     Ctm_Grid *grid = &tm->grid;
     Ctm_Row **itE = array_itE(grid->rows);
@@ -687,6 +681,11 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         Ctm_Image **jtE = array_itE(row->images);
         for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
             Ctm_Image *image = *jt;
+
+            if(image->render.is_floating || image->render.is_selected) {
+                tui_buffer_draw(buffer, image->render.rc_cell, 0, &bg_grab, 0, SO);
+            }
+
             if(tm->config.is_graphics_supported && ctm_image_is_valid(image)) {
                 /* make sure the image is updated on the TUI side */
                 if(!image->render.is_send_error && !image->render.is_send_ok) {
@@ -695,22 +694,16 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                 }
                 /* render only if dirty */
                 if(!image->render.is_clean) {
-                    //printff("place image @ %u,%u",image->render.rc_image.anc.x,image->render.rc_image.anc.y);
                     image->render.rc_image_prev = image->render.rc_image;
                     image->render.is_clean = true;
-                    //tui_image_clear_id_place(tm->tui_core, &tmp, image->tui_image->id);
                     image->tui_image->dst = image->render.rc_image;
                     image->tui_image->src.dim = image->tui_image->dimensions;
-                    image->tui_image->z = 0;
+                    //image->tui_image->z = 0;
 
-                    //if(tui_rect_contains_rect(row->render.rc_images, image->render.rc_image) || image->render.is_floating || image->render.is_selected) {
-                        tui_image_render(tm->tui_core, image->tui_image, image->tui_image->id, 0);
-                    //} else {
-                        //tui_image_clear_id_image(tm->tui_core, image->tui_image->id);
-                    //}
+                    tui_image_render(tm->tui_core, image->tui_image, image->tui_image->id, 0);
                 }
             } else {
-                tui_buffer_draw(buffer,image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_nodir(image->filename));
+                tui_buffer_draw(buffer, image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_nodir(image->filename));
             }
         }
 
