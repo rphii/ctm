@@ -68,13 +68,13 @@ void ctm_arg(Ctm *ctm) {
       argx_type_size(x, &ctm->config.w_title, &(ssize_t){ 10 });
 
     x=argx_opt(g, 'x', so("cell-width"), so("set single cell width"));
-      argx_type_size(x, &ctm->config.dim_cell.x, &(ssize_t){ 10 });
+      argx_type_size(x, &ctm->config.dim_cell.x, &(ssize_t){ 12 });
     x=argx_opt(g, 'y', so("cell-height"), so("set single cell height"));
-      argx_type_size(x, &ctm->config.dim_cell.y, &(ssize_t){ 5 });
+      argx_type_size(x, &ctm->config.dim_cell.y, &(ssize_t){ 6 });
     x=argx_opt(g, 'G', so("cell-width-grab"), so("set single cell height - grab"));
-      argx_type_size(x, &ctm->config.dim_cell_grab.x, &(ssize_t){ 14 });
+      argx_type_size(x, &ctm->config.dim_cell_grab.x, &(ssize_t){ 8 });
     x=argx_opt(g, 'g', so("cell-height-grab"), so("set single cell height - grab"));
-      argx_type_size(x, &ctm->config.dim_cell_grab.y, &(ssize_t){ 7 });
+      argx_type_size(x, &ctm->config.dim_cell_grab.y, &(ssize_t){ 4 });
     x=argx_opt(g, 'u', so("fg-ul"), so("set underline (foreground) color"));
       argx_type_color(x, &ctm->config.fg_ul, &(Color){ .r = 0x11, .g = 0x11, .b = 0x11 });
     x=argx_opt(g, 'e', so("bg-even"), so("set background color of even rows"));
