@@ -413,18 +413,32 @@ bool ctm_update(void *user) {
         tm->image_select.select.is_kbd = true;
     }
 
-    tm->grid.render.rc_grid.dim = tm->dimensions;
+    size_t n_rows_total = 0;
+    for(size_t i = 0; i < array_len(tm->grid.rows); ++i) {
+        Ctm_Row *row = array_at(tm->grid.rows, i);
+        n_rows_total += ctm_row_get_rows(&tm->config, row, tm->dimensions.x - tm->config.w_title);
+    }
+
+    tm->grid.render.rc_grid.dim.x = tm->dimensions.x;
+    tm->grid.render.rc_grid.dim.y = n_rows_total * tm->config.dim_cell.y;
+    //printff("n rows %zu = %zu",n_rows_total,tm->grid.render.rc_grid.dim.y);
+
     if(tm->input.mouse.scroll) {
         ssize_t scroll = tm->config.scroll_invert ? tm->input.mouse.scroll : -tm->input.mouse.scroll;
         scroll *= tm->config.scroll_mult;
         tm->grid.render.rc_grid.anc.y += scroll;
+    }
+
         if(tm->grid.render.rc_grid.anc.y > 0) {
             tm->grid.render.rc_grid.anc.y = 0;
         }
-        if(tm->grid.render.rc_grid.dim.y + tm->grid.render.rc_grid.anc.y < 0) {
-            tm->grid.render.rc_grid.anc.y = -tm->grid.render.rc_grid.dim.y;
+        if(tm->grid.render.rc_grid.dim.y > tm->dimensions.y) {
+            if(tm->grid.render.rc_grid.dim.y + tm->grid.render.rc_grid.anc.y < tm->dimensions.y) {
+                tm->grid.render.rc_grid.anc.y = -(tm->grid.render.rc_grid.dim.y - tm->dimensions.y);
+            }
+        } else {
+            tm->grid.render.rc_grid.anc.y = 0;
         }
-    }
 
     if(tm->input.mouse.m.press) {
         Ctm_Grid *grid = &tm->grid;
