@@ -19,6 +19,7 @@ typedef struct Ctm_Image {
     Tui_Image *tui_image;
     //Tui_Point coords;
 
+    bool changed_x_index_manually;
     struct Ctm_Row *row_owner;
 
     struct {

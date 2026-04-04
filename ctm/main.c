@@ -618,12 +618,19 @@ bool ctm_update(void *user) {
 
             if(tm->input.move_y || tm->input.move_x) {
                 ssize_t i_col = 0, y_move = 0;
+                if(tm->input.move_x) image->changed_x_index_manually = true;
+                if(tm->input.move_y) image->changed_x_index_manually = false;
+
                 ctm_grid_change_xy(&tm->config, &tm->grid, image, tm->input.move_x, tm->input.move_y, &i_col, &y_move);
                 ssize_t y = ctm_grid_row_index(&tm->grid, image->row_owner) + y_move;
 
                 if(y >= 0 && y < array_len(tm->grid.rows)) {
                     Ctm_Row *row_new = array_at(tm->grid.rows, y);
-                    ctm_row_image_set(tm, row_new, image, i_col);
+                    if(image->changed_x_index_manually) {
+                        ctm_row_image_set(tm, row_new, image, i_col);
+                    } else {
+                        ctm_row_image_set(tm, row_new, image, array_len(row_new->images));
+                    }
                 }
             }
 
