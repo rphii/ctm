@@ -1,5 +1,7 @@
-- don't move all tiles instantly (picking top left)
 - g, G
 - ghostty
-- enter as first key -> crash
+- animation when letting a tile go?
+- animation when zooming with a tile?
+
+- maybe: don't move all tiles instantly (picking top left)
 
