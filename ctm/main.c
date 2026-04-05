@@ -274,6 +274,36 @@ bool ctm_update(void *user) {
     return render;
 }
 
+void ctm_render_centered_text(Tui_Buffer *buffer, Ctm *tm, Tui_Rect rc, Tui_Color *fg, Tui_Color *bg, Tui_Fx *fx, So text) {
+    So line = SO;
+    text = so_trim(text);
+    size_t n_lines = so_count_ch(text, '\n') + 1;
+    Tui_Rect rc_bx = rc;
+    if(n_lines < rc_bx.dim.y) {
+        rc_bx.anc.y = rc_bx.anc.y + (rc_bx.dim.y - n_lines) / 2;
+    }
+    tui_buffer_draw(buffer, rc, fg, bg, fx, SO);
+    Tui_Rect rc_tx = rc_bx;
+    rc_tx.dim.y = 1;
+    while(so_splice(text, &line, '\n') && rc_tx.anc.y < rc_bx.anc.y + rc_bx.dim.y) {
+        tui_text_line_clear(&tm->render_tx);
+        tui_text_line_fmt(&tm->render_tx, "%.*s", SO_F(line));
+        rc_tx.dim.x = tm->render_tx.visual_len;
+        if(rc_tx.dim.x > rc_bx.dim.x) rc_tx.dim.x = rc_bx.dim.x;
+        if(tm->render_tx.visual_len < rc_bx.dim.x) {
+            rc_tx.anc.x = rc_bx.anc.x + (rc_bx.dim.x - tm->render_tx.visual_len) / 2;
+        } else {
+            rc_tx.anc.x = rc_bx.anc.x;
+        }
+        //size_t len = tm->render_tx.visual_len;
+        //tui_text_line_clear(&tm->render_tx);
+        //tui_text_line_fmt(&tm->render_tx, "%zu",len);
+        tui_buffer_draw(buffer, rc_tx, fg, bg, fx, tm->render_tx.so);
+        ++rc_tx.anc.y;
+    }
+}
+
+
 void ctm_render(Tui_Buffer *buffer, void *user) {
 
 
@@ -293,9 +323,9 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
         Ctm_Row *row = *it;
         tui_buffer_draw(buffer, row->render.rc_bg, 0, &row->render.bg_bg, 0, SO);
-        tui_buffer_draw(buffer, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
+        //tui_buffer_draw(buffer, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
+        ctm_render_centered_text(buffer, tm, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
         tui_buffer_draw(buffer, row->render.rc_ul, &row->render.fg_ul, &row->render.bg_bg, 0, tm->render_ul);
-        tui_buffer_draw(buffer, row->render.rc_uln, &row->render.fg_ul, &row->bg, 0, tm->render_ul);
     }
 
     Ctm_Image *on_top = 0;
@@ -376,7 +406,7 @@ void ctm_resized(Tui_Point size, Tui_Point pixels, void *user) {
     tm->dimensions = size;
 
     so_clear(&tm->render_ul);
-    for(size_t i = 0; i < size.x; ++i) {
+    for(size_t i = 0; i < size.x - tm->config.w_title; ++i) {
         so_extend(&tm->render_ul, so("▁"));
     }
 

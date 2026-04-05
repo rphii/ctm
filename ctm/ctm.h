@@ -73,6 +73,7 @@ typedef struct Ctm {
     Tui_Point           dimensions;
     So                  render_tmp;
     So                  render_ul;
+    Tui_Text_Line       render_tx;
 
 } Ctm;
 

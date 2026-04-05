@@ -1,17 +1,19 @@
-[layout]
+[list]
 category = [
-  "rgb(ff7f7f):S",
-  "rgb(ffbf7e):A",
+  "rgb(ff7f7f):S tier",
+  "rgb(ffbf7e):A tier",
   "rgb(ffdf7e):B",
   "rgb(ffff80):C",
-  "rgb(cfcfcf):F"
+  "rgb(cfcfcf):F",
 ] # <color,name>
+
+[layout]
 title-width = 10 # <size>
 cell-width = 12 # <size>
 cell-height = 6 # <size>
 cell-width-grab = 20 # <size>
 cell-height-grab = 10 # <size>
-grab-bg = rgb(7f0000) # <color>
+grab-bg = rgb(ff7fdf) # <color>
 fg-ul = rgb(111111) # <color>
 bg-even = rgb(060606) # <color>
 bg-odd = rgb(000000) # <color>

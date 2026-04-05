@@ -60,13 +60,12 @@ void ctm_arg(Ctm *ctm) {
       argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$XDG_CONFIG_HOME/ctm/ctm.conf"));
 
     /* stuff regarding the tier list layout */
-    g=argx_group(arg, so("layout"));
-
-    vso_push(&ctm->config.categories_template, so("rgb(ff7f7f):S"));
-    vso_push(&ctm->config.categories_template, so("rgb(ffbf7e):A"));
-    vso_push(&ctm->config.categories_template, so("rgb(ffdf7e):B"));
-    vso_push(&ctm->config.categories_template, so("rgb(ffff80):C"));
-    vso_push(&ctm->config.categories_template, so("rgb(cfcfcf):F"));
+    g=argx_group(arg, so("list"));
+    vso_push(&ctm->config.categories_template, so("rgb(ff7f7f):S 💖"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffbf7e):A 👍"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffdf7e):B 😑"));
+    vso_push(&ctm->config.categories_template, so("rgb(ffff80):C 🤡"));
+    vso_push(&ctm->config.categories_template, so("rgb(cfcfcf):F\n--or--\nidc"));
     x=argx_opt(g, 'c', so("category"), so("specify your own categories\n"
                 "* color can be 'random' or a value in the format rgb(RRGGBB)\n"
                 "* name can be any string you want for your category\n"
@@ -76,6 +75,7 @@ void ctm_arg(Ctm *ctm) {
       argx_attr_fatal_config_error(x, true);
       argx_callback(x, ctm_argx_category, ctm, ARGX_PRIORITY_IMMEDIATELY);
 
+    g=argx_group(arg, so("layout"));
     ctm->config_fb = (Ctm_Config){
         .w_title = 10,
         .dim_cell.x = 12,

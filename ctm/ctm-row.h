@@ -19,7 +19,6 @@ typedef struct Ctm_Row {
         Tui_Rect rc_images; /* only up to and including items */
         Tui_Rect rc_bg; /* width from name -> right */
         Tui_Rect rc_ul; /* "" */
-        Tui_Rect rc_uln; /* "" */
         Tui_Color bg_bg;
         Tui_Color fg_ul;
     } render;

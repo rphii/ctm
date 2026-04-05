@@ -92,10 +92,6 @@ void ctm_row_update(Tui_Rect rc_box, Ctm_Config *config, Ctm_Row *row, size_t y0
     row->render.rc_ul.anc.y += row->render.rc_ul.dim.y - 1;
     row->render.rc_ul.dim.y = 1;
 
-    row->render.rc_uln = row->render.rc_ul;
-    row->render.rc_uln.anc.x = row->render.rc_name.anc.x;
-    row->render.rc_uln.dim.x = row->render.rc_name.dim.x;
-
     /* figure out title rc */
     rc.anc.x = 0;
     rc.anc.y = y0;
