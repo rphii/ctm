@@ -1,0 +1,20 @@
+[list]
+category = [
+  "random:S\nSSS\nSSSSS",
+  "random:A\nAAA\nA",
+  "random:FFFFF\nFFF\nF",
+] # <color,name>
+random = true # <bool>
+
+[layout]
+title-width = 10 # <size>
+cell-width = 16 # <size>
+cell-height = 8 # <size>
+cell-width-grab = 10 # <size>
+cell-height-grab = 5 # <size>
+bg-grab = rgb(40ff40) # <color>
+bg-base = rgb(001f00) # <color>
+fg-ul = rgb(70ff70) # <color>
+bg-even = rgb(004f00) # <color>
+bg-odd = rgb(003f00) # <color>
+

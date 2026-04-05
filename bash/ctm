@@ -1,0 +1,4 @@
+# generic completion function using rlarg
+_completion_loader rlarg
+complete -o bashdefault -o default -F _complete_rlarg ctm
+

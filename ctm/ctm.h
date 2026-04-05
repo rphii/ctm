@@ -11,39 +11,22 @@
 #include "ctm-loader-image.h"
 #include "ctm-event.h"
 #include "ctm-image.h"
+#include "ctm-config.h"
+#include "ctm-grid.h"
 
+#define CTM_IMG_Z_INDEX      (INT32_MIN/2)
 
-typedef struct Ctm_Row {
-    So name;
-    Tui_Fx fx;
-    Tui_Color fg;
-    Tui_Color bg;
-    Ctm_Image **images;
-
-    struct {
-        Tui_Rect rc_row; /* the full width, from left -> right */
-        Tui_Rect rc_name;
-        Tui_Rect rc_images; /* only up to and including items */
-        Tui_Rect rc_bg; /* width from name -> right */
-        Tui_Rect rc_ul; /* "" */
-        Tui_Color bg_bg;
-        Tui_Color fg_ul;
-    } render;
-
-} Ctm_Row, **Ctm_Rows;
-
-typedef struct Ctm_Grid {
-    Ctm_Rows rows;
-
-    struct {
-        Tui_Rect rc_grid;
-    } render;
-} Ctm_Grid;
 
 typedef struct Ctm_Input {
     int move_x;
     int move_y;
-    bool space;
+    int select_x;
+    int select_y;
+    bool cancel;
+    bool confirm;
+    bool next;
+    bool remove;
+    Tui_Input_List input_id;
     Tui_Mouse mouse;
 } Ctm_Input;
 
@@ -53,30 +36,25 @@ typedef struct Ctm_Image_Select {
         Ctm_Image *image;
         Tui_Point float_anc;
         Tui_Point float_origin;
+        bool is_kbd;
     } select;
-
-    struct {
-        Tui_Rect rc;
-        Tui_Color bg;
-    } render;
 
 } Ctm_Image_Select;
 
-typedef struct Ctm_Config {
-    bool is_graphics_supported;
-    Tui_Point dim_cell;
-    Tui_Point dim_cell_grab;
-    ssize_t w_title;
-} Ctm_Config;
-
 typedef struct Ctm {
+
+    size_t n_input;
+    size_t n_render;
+    size_t n_update;
 
     bool                arg_quit_early;
     struct Arg_Config  *arg_config;
     struct Arg         *arg;
 
     Ctm_Config          config;
+    Ctm_Config          config_fb;
     VSo                 image_paths;
+    Ctm_Image         **images_pop;
 
     bool                tui_defer;
     Tui_Sync            tui_sync;
@@ -93,6 +71,9 @@ typedef struct Ctm {
     Ctm_Grid            grid;
 
     Tui_Point           dimensions;
+    So                  render_tmp;
+    So                  render_ul;
+    Tui_Text_Line       render_tx;
 
 } Ctm;
 

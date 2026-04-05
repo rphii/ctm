@@ -4,6 +4,8 @@
 
 void ctm_arg(Ctm *ctm);
 
+int ctm_arg_parse_category(So so, Color *color, So *name, struct Argx *argx);
+
 #define CTM_ARG_H
 #endif /* CTM_ARG_H */
 

@@ -14,8 +14,8 @@ typedef struct Ctm_Queue_Do {
 
 void ctm_loader_image_init(Ctm_Loader_Image *loader, struct Ctm *ctm, size_t n_jobs) {
     loader->ctm = ctm;
-    loader->config.thumb_h = 128;
-    loader->config.thumb_w = 128;
+    loader->config.thumb_h = loader->ctm->config.thumb;
+    loader->config.thumb_w = loader->ctm->config.thumb;
     pw_init(&loader->pw, n_jobs ? n_jobs : 1);
     pw_dispatch(&loader->pw);
 
@@ -72,6 +72,7 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
 
         stbir_resize_uint8_linear(data, w, h, 0, load->data, load->width, load->height, 0, load->channels);
         load->tui_image = tui_image_new(qd->ctm->tui_core, load->unique_id, load->data, (Tui_Point){ .x = load->width, .y = load->height }, load->channels);
+        load->tui_image->z = CTM_IMG_Z_INDEX;
         load->loaded = true;
         fclose(fp);
 
@@ -96,8 +97,8 @@ defer:
         ++qd->ctm->events.thumb_loaded;
         pthread_mutex_unlock(&qd->ctm->events.mtx);
         /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
-        //tui_sync_main_update(&qd->ctm->tui_sync.main);
-        tui_sync_main_both(&qd->ctm->tui_sync.main);
+        tui_sync_main_update(&qd->ctm->tui_sync.main);
+        //tui_sync_main_both(&qd->ctm->tui_sync.main);
     } else {
         ctm_loader_set_fallback(load, rand(), rand(), rand());
     }
@@ -110,8 +111,8 @@ void *ctm_loader_when_all_done(Pw *pw, bool *cancel, void *user) {
     Ctm_Loader_Image *loader = user;
     
     /* TODO: use sync_main_update -> but it does not work, so we just use sync_main_both lol */
-    //tui_sync_main_update(&loader->ctm->tui_sync.main);
-    tui_sync_main_both(&loader->ctm->tui_sync.main);
+    tui_sync_main_update(&loader->ctm->tui_sync.main);
+    //tui_sync_main_both(&loader->ctm->tui_sync.main);
     pw_when_done_clear(pw);
     return 0;
 }
