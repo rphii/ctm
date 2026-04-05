@@ -50,3 +50,18 @@ If image support is detected to be not present, i.e. other terminals, [st](https
 
 - `ctm` does not go through files recursively _(yet)_
 
+### hotkeys
+
+- `q`  quit
+- `hjkl` select left,down,up,right
+- `HJKL` move left,down,up,right
+- `X` remove
+- `<ESC>` cancel selection
+- `<SPACE>` toggle selection
+
+### mouse
+
+- drag and drop tiles
+- middle click to remove
+- scroll to change view
+
