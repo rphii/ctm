@@ -14,6 +14,7 @@ typedef struct Ctm_Config {
     bool scroll_invert;
     bool random_placement;
     bool custom_categories;
+    bool no_image;
 
     Tui_Point dim_cell_grab_fast;
 
@@ -24,6 +25,7 @@ typedef struct Ctm_Config {
     Color bg_even;
     Color bg_odd;
     Color fg_ul;
+    Color bg_base;
 } Ctm_Config;
 
 #define CTM_CONFIG_H

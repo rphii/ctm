@@ -59,6 +59,15 @@ void ctm_arg(Ctm *ctm) {
       argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$HOME/.config/ctm/ctm.conf"));
       argx_builtin_opt_source(g, ARGX_BUILTIN_OPT_SOURCE, so("$XDG_CONFIG_HOME/ctm/ctm.conf"));
 
+    x=argx_opt(g, 's', so("scroll-mult"), so("set background color of odd rows"));
+      argx_type_size(x, &ctm->config.scroll_mult, &ctm->config_fb.scroll_mult);
+    x=argx_opt(g, 'S', so("scroll-invert"), so("set background color of odd rows"));
+      argx_type_bool(x, &ctm->config.scroll_invert, 0);
+    x=argx_opt(g, 't', so("thumb"), so("set thumbnail size ( N*N )"));
+      argx_type_size(x, &ctm->config.thumb, &ctm->config_fb.thumb);
+    x=argx_opt(g, 'N', so("no-img"), so("don't try to load images"));
+      argx_type_bool(x, &ctm->config.no_image, 0);
+
     /* stuff regarding the tier list layout */
     g=argx_group(arg, so("list"));
     vso_push(&ctm->config.categories_template, so("rgb(ff7f7f):S 💖"));
@@ -74,6 +83,8 @@ void ctm_arg(Ctm *ctm) {
       argx_hint_text(x, so("color,name"));
       argx_attr_fatal_config_error(x, true);
       argx_callback(x, ctm_argx_category, ctm, ARGX_PRIORITY_IMMEDIATELY);
+    x=argx_opt(g, 0, so("random"), so("place tiles randomly"));
+      argx_type_bool(x, &ctm->config.random_placement, 0);
 
     g=argx_group(arg, so("layout"));
     ctm->config_fb = (Ctm_Config){
@@ -82,7 +93,7 @@ void ctm_arg(Ctm *ctm) {
         .dim_cell.y = 6,
         .dim_cell_grab.x = 22,
         .dim_cell_grab.y = 10,
-        .bg_grab = (Color){ .r = 0x7f, .g = 0x0, .b = 0x0 },
+        .bg_grab = (Color){ .r = 0xff, .g = 0x7f, .b = 0xdf },
         .fg_ul = (Color){ .r = 0x11, .g = 0x11, .b = 0x11 },
         .bg_even = (Color){ .r = 0x6, .g = 0x6, .b = 0x6 },
         .bg_odd = (Color){ .r = 0x0, .g = 0x0, .b = 0x0 },
@@ -100,22 +111,16 @@ void ctm_arg(Ctm *ctm) {
       argx_type_size(x, &ctm->config.dim_cell_grab.x, &ctm->config_fb.dim_cell_grab.x);
     x=argx_opt(g, 'g', so("cell-height-grab"), so("set single cell height - grab"));
       argx_type_size(x, &ctm->config.dim_cell_grab.y, &ctm->config_fb.dim_cell_grab.y);
-    x=argx_opt(g, 'X', so("grab-bg"), so("set grab background color"));
+    x=argx_opt(g, 'X', so("bg-grab"), so("set grab background color"));
       argx_type_color(x, &ctm->config.bg_grab, &ctm->config_fb.bg_grab);
+    x=argx_opt(g, 'b', so("bg-base"), so("set base background color"));
+      argx_type_color(x, &ctm->config.bg_base, 0);
     x=argx_opt(g, 'u', so("fg-ul"), so("set underline (foreground) color"));
       argx_type_color(x, &ctm->config.fg_ul, &ctm->config_fb.fg_ul);
     x=argx_opt(g, 'e', so("bg-even"), so("set background color of even rows"));
       argx_type_color(x, &ctm->config.bg_even, &ctm->config_fb.bg_even);
     x=argx_opt(g, 'o', so("bg-odd"), so("set background color of odd rows"));
       argx_type_color(x, &ctm->config.bg_odd, &ctm->config_fb.bg_odd);
-    x=argx_opt(g, 's', so("scroll-mult"), so("set background color of odd rows"));
-      argx_type_size(x, &ctm->config.scroll_mult, &ctm->config_fb.scroll_mult);
-    x=argx_opt(g, 'S', so("scroll-invert"), so("set background color of odd rows"));
-      argx_type_bool(x, &ctm->config.scroll_invert, 0);
-    x=argx_opt(g, 't', so("thumb"), so("set thumbnail size ( N*N )"));
-      argx_type_size(x, &ctm->config.thumb, &ctm->config_fb.thumb);
-    x=argx_opt(g, 0, so("random"), so("place tiles randomly"));
-      argx_type_bool(x, &ctm->config.random_placement, 0);
 
 
     //Color bg_even;

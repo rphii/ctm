@@ -20,9 +20,16 @@ rlpw_dep = dependency('rlpw', fallback : ['rlpw', 'rlpw_dep'], default_options: 
 rlarg_dep = dependency('rlarg', fallback : ['rlarg', 'rlarg_dep'], default_options: ['default_library=static'])
 rltui_dep = dependency('rltui', fallback : ['rltui', 'rltui_dep'], default_options: ['default_library=static'])
 
+# try to get stb - fallback to git submodule
+stb_dep = dependency('stb', required: false)
+if not stb_dep.found()
+  stb_dep = declare_dependency(include_directories: include_directories('.'))
+  message('using stb from submodule')
+endif
+
 ctm = executable('ctm',
   sources,
-  dependencies: [m_dep, rlc_dep, rlso_dep, rlpw_dep, rlarg_dep, rltui_dep],
+  dependencies: [m_dep, rlc_dep, rlso_dep, rlpw_dep, rlarg_dep, rltui_dep, stb_dep],
   install: true,
   )
 

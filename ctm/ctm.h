@@ -25,6 +25,7 @@ typedef struct Ctm_Input {
     bool cancel;
     bool confirm;
     bool next;
+    bool remove;
     Tui_Input_List input_id;
     Tui_Mouse mouse;
 } Ctm_Input;
@@ -42,8 +43,6 @@ typedef struct Ctm_Image_Select {
 
 typedef struct Ctm {
 
-    bool load_img;
-
     size_t n_input;
     size_t n_render;
     size_t n_update;
@@ -55,6 +54,7 @@ typedef struct Ctm {
     Ctm_Config          config;
     Ctm_Config          config_fb;
     VSo                 image_paths;
+    Ctm_Image         **images_pop;
 
     bool                tui_defer;
     Tui_Sync            tui_sync;

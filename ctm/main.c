@@ -31,7 +31,7 @@ bool ctm_input(Tui_Input *input, bool *flush, void *user) {
                 case 'k': { --tm->input.select_y; } break;
                 case 'l': { ++tm->input.select_x; } break;
                 case 'h': { --tm->input.select_x; } break;
-                case 'x': { tm->load_img = true; } break;
+                case 'X': { tm->input.remove = true; } break;
                 case ' ': {
                     tm->input.confirm = true;
                 } break;
@@ -98,9 +98,14 @@ bool ctm_update(void *user) {
     }
 
     if(tm->input.mouse.m.press) {
+        Ctm_Image *selected = tm->image_select.select.image;
         Ctm_Grid *grid = &tm->grid;
-        Ctm_Image *selected = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
-        ctm_row_pop_image(tm, selected, true);
+        Ctm_Image *popped = ctm_grid_image_from_pos(grid, tm->input.mouse.pos);
+        ctm_row_pop_image(tm, popped, true);
+
+        if(selected == popped) {
+            tm->image_select.select.image = 0;
+        }
     }
 
     if(tm->input.mouse.l.press) {
@@ -184,6 +189,11 @@ bool ctm_update(void *user) {
     if(tm->image_select.select.is_kbd) {
 
         Ctm_Image *image = tm->image_select.select.image;
+
+        if(image && tm->input.remove) {
+            ctm_row_pop_image(tm, image, true);
+            image = 0;
+        }
 
         if(tm->input.next) {
             Ctm_Image *image_old = image;
@@ -279,9 +289,36 @@ void ctm_render_centered_text(Tui_Buffer *buffer, Ctm *tm, Tui_Rect rc, Tui_Colo
     text = so_trim(text);
     size_t n_lines = so_count_ch(text, '\n') + 1;
     Tui_Rect rc_bx = rc;
+    /* just force text to be visible */
+    /* top */
+    if(rc_bx.anc.y < 0) {
+        ssize_t n = rc_bx.anc.y;
+        rc_bx.anc.y = 0;
+        rc_bx.dim.y += n;
+    }
+    /* left */
+    if(rc_bx.anc.x < 0) {
+        ssize_t n = rc_bx.anc.x;
+        rc_bx.anc.x = 0;
+        rc_bx.dim.x += n;
+    }
+    /* right */
+    if(rc_bx.anc.x + rc_bx.dim.x >= buffer->dimension.x) {
+        ssize_t n = buffer->dimension.x - (rc_bx.anc.x + rc_bx.dim.x);
+        rc_bx.dim.x += n;
+    }
+    /* bottm */
+    if(rc_bx.anc.y + rc_bx.dim.y >= buffer->dimension.y) {
+        ssize_t n = buffer->dimension.y - (rc_bx.anc.y + rc_bx.dim.y);
+        rc_bx.dim.y += n;
+    }
+
+
     if(n_lines < rc_bx.dim.y) {
         rc_bx.anc.y = rc_bx.anc.y + (rc_bx.dim.y - n_lines) / 2;
     }
+
+    /* now actually draw */
     tui_buffer_draw(buffer, rc, fg, bg, fx, SO);
     Tui_Rect rc_tx = rc_bx;
     rc_tx.dim.y = 1;
@@ -316,6 +353,9 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
         .dim = (Tui_Point){ .x = buffer->dimension.x, .y = 1 }
     };
 
+    Tui_Color bg_mono = { .r = tm->config.bg_base.r, .g = tm->config.bg_base.g, .b = tm->config.bg_base.b, .type = TUI_COLOR_RGB };
+    tui_buffer_mono(buffer, 0, &bg_mono, 0);
+
     Tui_Color bg_grab = (Tui_Color){ .r = tm->config.bg_grab.r, .g = tm->config.bg_grab.g, .b = tm->config.bg_grab.b, .type = TUI_COLOR_RGB };
 
     Ctm_Grid *grid = &tm->grid;
@@ -323,7 +363,6 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
         Ctm_Row *row = *it;
         tui_buffer_draw(buffer, row->render.rc_bg, 0, &row->render.bg_bg, 0, SO);
-        //tui_buffer_draw(buffer, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
         ctm_render_centered_text(buffer, tm, row->render.rc_name, &row->fg, &row->bg, &row->fx, row->name);
         tui_buffer_draw(buffer, row->render.rc_ul, &row->render.fg_ul, &row->render.bg_bg, 0, tm->render_ul);
     }
@@ -348,7 +387,7 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                 /* make sure the image is updated on the TUI side */
                 if(!image->render.is_send_error && !image->render.is_send_ok) {
                     So err = SO;
-                    image->render.is_send_error = tui_image_update(tm->tui_core, image->tui_image, &err);
+                    image->render.is_send_error = tui_image_update(buffer, image->tui_image, &err);
                     image->render.is_send_ok = !image->render.is_send_error;
                     if(image->render.is_send_error) {
                         so_copy(&image->err, err);
@@ -364,14 +403,14 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
                     image->tui_image->z = on_top ? 1 : CTM_IMG_Z_INDEX;
                     //printff("Z %i",image->tui_image->z);
                     So err = SO;
-                    image->render.is_render_error = tui_image_render(tm->tui_core, image->tui_image, 1, &err);
+                    image->render.is_render_error = tui_image_render(buffer, image->tui_image, 1, &err);
                     if(image->render.is_render_error){
                         so_copy(&image->err, err);
                         //tui_image_clear_all(tm->tui_core);
                     }
                 }
             } else {
-                tui_buffer_draw(buffer, image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_nodir(image->filename));
+                ctm_render_centered_text(buffer, tm, image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_nodir(image->filename));
             }
         }
 
@@ -380,13 +419,22 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
     if(on_top) {
         if(!(tm->config.is_graphics_supported && ctm_image_is_valid(on_top) &&
                 !on_top->render.is_render_error && !on_top->render.is_send_error)) {
-            tui_buffer_draw(buffer, on_top->render.rc_image, &on_top->render.fallback_fg, &on_top->render.fallback_bg, 0, so_get_nodir(on_top->filename));
+            ctm_render_centered_text(buffer, tm, on_top->render.rc_image, &on_top->render.fallback_fg, &on_top->render.fallback_bg, 0, so_get_nodir(on_top->filename));
+#if 0
             Tui_Rect rc2 = on_top->render.rc_image;
             rc2.anc.y++;
             rc2.dim.y--;
             tui_buffer_draw(buffer, rc2, &on_top->render.fallback_fg, &on_top->render.fallback_bg, 0, on_top->err);
+#endif
         }
     }
+
+    while(array_len(tm->images_pop)) {
+        Ctm_Image *image = array_pop(tm->images_pop);
+        tui_image_clear_id_image(buffer, image->tui_image->id);
+        ctm_image_free(image);
+    }
+
 
 #if 0
     Tui_Rect rc_stats = {0};
@@ -419,6 +467,8 @@ void ctm_grid_free(Ctm_Grid *grid) {
 
 int main(int argc, const char **argv) {
 
+    srand(time(0));
+
     int err = 0;
 
     Ctm tm = {0};
@@ -437,6 +487,8 @@ int main(int argc, const char **argv) {
     err = arg_parse(tm.arg, argc, argv, &tm.arg_quit_early);
     if(err || tm.arg_quit_early) goto defer;
 
+    tm.config.is_graphics_supported = !tm.config.no_image;
+
     long number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
 
     /* set up the tui portion of tui */
@@ -449,7 +501,7 @@ int main(int argc, const char **argv) {
         tm.tui_core_callbacks.resized = ctm_resized;
         tui_enter();
         tui_core_init(tm.tui_core, &tm.tui_core_callbacks, &tm.tui_sync, &tm);
-        tm.config.is_graphics_supported = tui_image_is_supported(tm.tui_core);
+        tm.config.is_graphics_supported &= tui_image_is_supported(tm.tui_core);
     }
 
     /* init all other ctm structs */
@@ -519,10 +571,17 @@ defer:
         tui_exit();
     }
 
-    arg_free(&tm.arg);
-    arg_config_free(&tm.arg_config);
+    array_free(tm.images_pop);
+
     v_ctm_image_free(&tm.v_images);
+
     ctm_grid_free(&tm.grid);
+
+    so_free(&tm.render_tx.so);
+    so_free(&tm.render_ul);
+
+    arg_config_free(&tm.arg_config);
+    arg_free(&tm.arg);
 
     return err;
 }

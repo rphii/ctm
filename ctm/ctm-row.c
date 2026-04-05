@@ -146,7 +146,7 @@ void ctm_row_pop_image(Ctm *tm, Ctm_Image *image, bool do_delete) {
     array_resize(row_owner->images, row_owner_len - 1);
 
     if(do_delete && ctm_image_is_valid(image)) {
-        tui_image_clear_id_image(tm->tui_core, image->tui_image->id);
+        array_push(tm->images_pop, image);
     }
 
 }

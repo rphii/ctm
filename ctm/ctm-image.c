@@ -11,11 +11,21 @@ VEC_IMPLEMENT(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, BASE, ctm_image_free)
 VEC_IMPLEMENT(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, ERR);
 VEC_IMPLEMENT(V_Ctm_Image, v_ctm_image, Ctm_Image, BY_REF, SORT, ctm_image_cmp);
 
+void ctm_image_freep(Ctm_Image **image) {
+    if(!image) return;
+    ctm_image_free(*image);
+}
+
 void ctm_image_free(Ctm_Image *image) {
 
     if(!image) return;
+
     if(image->data) {
-        stbi_image_free(image->data);
+        free(image->data);
+    }
+
+    if(ctm_image_is_loaded(image) && image->tui_image) {
+        tui_image_free(image->tui_image);
     }
     so_free(&image->filename);
     memset(image, 0, sizeof(*image));

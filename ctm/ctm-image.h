@@ -10,6 +10,7 @@ struct Ctm_Row;
 struct Ctm_Grid;
 
 typedef struct Ctm_Image {
+
     So filename;
     uint8_t *data;
     int width;
@@ -46,6 +47,7 @@ typedef struct Ctm_Image_LL {
     Ctm_Image *next;
 } Ctm_Image_LL;
 
+void ctm_image_freep(Ctm_Image **image);
 void ctm_image_free(Ctm_Image *img);
 int ctm_image_cmp(Ctm_Image *a, Ctm_Image *b);
 
