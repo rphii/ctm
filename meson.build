@@ -1,4 +1,4 @@
-project('nue', 'c', meson_version: '>=1.1', version: '0.0.2')
+project('ctm', 'c', meson_version: '>=1.1', version: '0.0.2')
 add_project_arguments('-DCTM_VERSION="'+meson.project_version()+'"', language : 'c')
 
 sources = [
