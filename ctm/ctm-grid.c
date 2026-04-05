@@ -33,16 +33,20 @@ bool ctm_grid_update_dirty(Ctm_Grid *grid, bool unfloat_all, bool unselect_all) 
         for(Ctm_Image **jt = row->images; jt < jtE; ++jt) {
             Ctm_Image *image = *jt;
             if(!image) continue;
-            if(tui_rect_cmp(image->render.rc_image, image->render.rc_image_prev)) {
-                image->render.is_clean = false;
-                render |= true;
-            }
             if(unfloat_all && unselect_all) {
                 render |= ctm_image_unboth(image);
             } else if(unfloat_all) {
                 render |= ctm_image_unfloat(image);
             } else if(unselect_all) {
                 render |= ctm_image_unselect(image);
+            }
+            if(tui_rect_cmp(image->render.rc_image, image->render.rc_image_prev)) {
+                image->render.is_clean = false;
+                render |= true;
+            }
+            if(image->render.is_selected || image->render.is_floating) {
+                image->render.is_clean = false;
+                render = true;
             }
         }
     }

@@ -23,6 +23,7 @@ typedef struct Ctm_Image {
 
     bool changed_x_index_manually;
     struct Ctm_Row *row_owner;
+    So err;
 
     struct {
         Tui_Rect rc_image_prev;
@@ -32,6 +33,7 @@ typedef struct Ctm_Image {
         Tui_Color fallback_fg;
         bool is_send_ok;
         bool is_send_error;
+        bool is_render_error;
         bool is_clean; /* if draw ok */
         bool is_floating; /* if grabbed by mouse */
         bool is_selected; /* if selected with kbd mouse */

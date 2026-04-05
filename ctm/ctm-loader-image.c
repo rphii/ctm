@@ -72,6 +72,7 @@ void *ctm_loader_image_image(Pw *pw, bool *cancel, void *user) {
 
         stbir_resize_uint8_linear(data, w, h, 0, load->data, load->width, load->height, 0, load->channels);
         load->tui_image = tui_image_new(qd->ctm->tui_core, load->unique_id, load->data, (Tui_Point){ .x = load->width, .y = load->height }, load->channels);
+        load->tui_image->z = CTM_IMG_Z_INDEX;
         load->loaded = true;
         fclose(fp);
 

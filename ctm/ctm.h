@@ -14,12 +14,15 @@
 #include "ctm-config.h"
 #include "ctm-grid.h"
 
+#define CTM_IMG_Z_INDEX      (INT32_MIN/2)
+
 
 typedef struct Ctm_Input {
     int move_x;
     int move_y;
     int select_x;
     int select_y;
+    bool cancel;
     bool confirm;
     bool next;
     Tui_Input_List input_id;
@@ -38,6 +41,8 @@ typedef struct Ctm_Image_Select {
 } Ctm_Image_Select;
 
 typedef struct Ctm {
+
+    bool load_img;
 
     size_t n_input;
     size_t n_render;
@@ -67,6 +72,7 @@ typedef struct Ctm {
 
     Tui_Point           dimensions;
     So                  render_tmp;
+    So                  render_ul;
 
 } Ctm;
 

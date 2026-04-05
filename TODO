@@ -1,4 +1,5 @@
 - don't move all tiles instantly (picking top left)
 - g, G
 - ghostty
+- enter as first key -> crash
 

@@ -59,32 +59,35 @@ void v_ctm_image_init_from_paths(V_Ctm_Image *v, VSo paths) {
 }
 
 bool ctm_image_unselect(Ctm_Image *image) {
+    if(!image) return 0;
     bool changed = !image->render.is_clean
         || image->render.is_selected;
 
     image->render.is_clean &= !image->render.is_selected; /* mark as not clean if was selected */
     image->render.is_selected = false;
     if(ctm_image_is_valid(image)) {
-        changed |= image->tui_image->z;
-        image->tui_image->z = 0;
+        changed |= (image->tui_image->z != CTM_IMG_Z_INDEX);
+        image->tui_image->z = CTM_IMG_Z_INDEX;
     }
     return changed;
 }
 
 bool ctm_image_unfloat(Ctm_Image *image) {
+    if(!image) return 0;
     bool changed = !image->render.is_clean
         || image->render.is_floating;
 
     image->render.is_clean &= !image->render.is_floating; /* mark as not clean if was floating */
     image->render.is_floating = false;
     if(ctm_image_is_valid(image)) {
-        changed |= image->tui_image->z;
-        image->tui_image->z = 0;
+        changed |= (image->tui_image->z != CTM_IMG_Z_INDEX);
+        image->tui_image->z = CTM_IMG_Z_INDEX;
     }
     return changed;
 }
 
 bool ctm_image_unboth(Ctm_Image *image) {
+    if(!image) return 0;
     bool changed = !image->render.is_clean
         || image->render.is_floating
         || image->render.is_selected;
@@ -94,8 +97,8 @@ bool ctm_image_unboth(Ctm_Image *image) {
     image->render.is_floating = false;
     image->render.is_selected = false;
     if(ctm_image_is_valid(image)) {
-        changed |= image->tui_image->z;
-        image->tui_image->z = 0;
+        changed |= (image->tui_image->z != CTM_IMG_Z_INDEX);
+        image->tui_image->z = CTM_IMG_Z_INDEX;
     }
     return changed;
 }

@@ -80,7 +80,7 @@ void ctm_arg(Ctm *ctm) {
         .w_title = 10,
         .dim_cell.x = 12,
         .dim_cell.y = 6,
-        .dim_cell_grab.x = 20,
+        .dim_cell_grab.x = 22,
         .dim_cell_grab.y = 10,
         .bg_grab = (Color){ .r = 0x7f, .g = 0x0, .b = 0x0 },
         .fg_ul = (Color){ .r = 0x11, .g = 0x11, .b = 0x11 },
