@@ -39,7 +39,7 @@ If image support is detected to be not present, i.e. other terminals, [st](https
 
 - launch to see layout: `ctm`
 - launch without displaying images `ctm -N assets/*`
-- launch only using arch and gentoo `ctm -N assets/arg.png assets/gentoo.png`
+- launch only using arch and gentoo `ctm -N assets/arch.png assets/gentoo.png`
 - launch using images `ctm assets/*`
 - launch using the supplied green [`conf`](conf): `ctm --source conf assets/*`
 - launch with anything: `ctm 'word 1' 'word 2'`
@@ -58,6 +58,7 @@ If image support is detected to be not present, i.e. other terminals, [st](https
 - `X` remove
 - `<ESC>` cancel selection
 - `<SPACE>` toggle selection
+- `<ENTER>` select first item in lowest row
 
 ### mouse
 
