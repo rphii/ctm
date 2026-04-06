@@ -341,6 +341,33 @@ void ctm_render_centered_text(Tui_Buffer *buffer, Ctm *tm, Tui_Rect rc, Tui_Colo
 }
 
 
+void ctm_render_image(Tui_Buffer *buffer, Ctm_Image *image, ssize_t z) {
+    if(!image->render.is_send_error && !image->render.is_send_ok) {
+        So err = SO;
+        image->render.is_send_error = tui_image_update(buffer, image->tui_image, &err);
+        image->render.is_send_ok = !image->render.is_send_error;
+        if(image->render.is_send_error) {
+            so_copy(&image->err, err);
+            //tui_image_clear_all(tm->tui_core);
+        }
+    }
+    /* render only if dirty */
+    if(!image->render.is_clean) {
+        image->render.rc_image_prev = image->render.rc_image;
+        image->render.is_clean = true;
+        image->tui_image->dst = image->render.rc_image;
+        image->tui_image->src.dim = image->tui_image->dimensions;
+        image->tui_image->z = z;
+        //printff("Z %i",image->tui_image->z);
+        So err = SO;
+        image->render.is_render_error = tui_image_render(buffer, image->tui_image, 1, &err);
+        if(image->render.is_render_error){
+            so_copy(&image->err, err);
+            //tui_image_clear_all(tm->tui_core);
+        }
+    }
+}
+
 void ctm_render(Tui_Buffer *buffer, void *user) {
 
 
@@ -369,6 +396,8 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
 
     Ctm_Image *on_top = 0;
 
+    bool any_dirty = false;
+
     for(Ctm_Row **it = grid->rows; it < itE; ++it) {
         Ctm_Row *row = *it;
 
@@ -377,55 +406,37 @@ void ctm_render(Tui_Buffer *buffer, void *user) {
             Ctm_Image *image = *jt;
 
             if(image->render.is_floating || image->render.is_selected) {
-                tui_buffer_draw(buffer, image->render.rc_cell, 0, &bg_grab, 0, SO);
+
+                /* if the cell is grabbed and the grab dimensions < cell dimension, do not draw the background color */
+                if(!(tm->image_select.select.is_kbd
+                        && image->render.rc_cell.dim.x <= tm->config.dim_cell_grab.x
+                        && image->render.rc_cell.dim.y <= tm->config.dim_cell_grab.y)) {
+                    tui_buffer_draw(buffer, image->render.rc_cell, 0, &bg_grab, 0, SO);
+                }
+
                 ASSERT(on_top == 0, "should only have one on top");
                 on_top = image; /* can only have one image on top (atm) :) */
+                //continue;
+            } else {
+                any_dirty |= !image->render.is_clean;
             }
 
-            if(tm->config.is_graphics_supported && ctm_image_is_valid(image) &&
-                    !image->render.is_render_error && !image->render.is_send_error) {
-                /* make sure the image is updated on the TUI side */
-                if(!image->render.is_send_error && !image->render.is_send_ok) {
-                    So err = SO;
-                    image->render.is_send_error = tui_image_update(buffer, image->tui_image, &err);
-                    image->render.is_send_ok = !image->render.is_send_error;
-                    if(image->render.is_send_error) {
-                        so_copy(&image->err, err);
-                        //tui_image_clear_all(tm->tui_core);
-                    }
-                }
-                /* render only if dirty */
-                if(!image->render.is_clean) {
-                    image->render.rc_image_prev = image->render.rc_image;
-                    image->render.is_clean = true;
-                    image->tui_image->dst = image->render.rc_image;
-                    image->tui_image->src.dim = image->tui_image->dimensions;
-                    image->tui_image->z = on_top ? 1 : CTM_IMG_Z_INDEX;
-                    //printff("Z %i",image->tui_image->z);
-                    So err = SO;
-                    image->render.is_render_error = tui_image_render(buffer, image->tui_image, 1, &err);
-                    if(image->render.is_render_error){
-                        so_copy(&image->err, err);
-                        //tui_image_clear_all(tm->tui_core);
-                    }
-                }
+            if(tm->config.is_graphics_supported && ctm_image_is_valid(image) && !image->render.is_render_error && !image->render.is_send_error) {
+                ctm_render_image(buffer, image, CTM_IMG_Z_INDEX);
             } else {
                 ctm_render_centered_text(buffer, tm, image->render.rc_image, &image->render.fallback_fg, &image->render.fallback_bg, 0, so_get_nodir(image->filename));
             }
+
         }
 
     }
 
     if(on_top) {
-        if(!(tm->config.is_graphics_supported && ctm_image_is_valid(on_top) &&
-                !on_top->render.is_render_error && !on_top->render.is_send_error)) {
+        if(tm->config.is_graphics_supported && ctm_image_is_valid(on_top) && !on_top->render.is_render_error && !on_top->render.is_send_error) {
+            on_top->render.is_clean = !any_dirty;
+            ctm_render_image(buffer, on_top, 1);
+        } else {
             ctm_render_centered_text(buffer, tm, on_top->render.rc_image, &on_top->render.fallback_fg, &on_top->render.fallback_bg, 0, so_get_nodir(on_top->filename));
-#if 0
-            Tui_Rect rc2 = on_top->render.rc_image;
-            rc2.anc.y++;
-            rc2.dim.y--;
-            tui_buffer_draw(buffer, rc2, &on_top->render.fallback_fg, &on_top->render.fallback_bg, 0, on_top->err);
-#endif
         }
     }
 
